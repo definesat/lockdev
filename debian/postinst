@@ -1,7 +1,5 @@
-#!/bin/sh -e
+#! /bin/sh -e
 
-  # postinst
-
-ldconfig
-
-  # end
+if [ "$1" = "configure" ]; then
+	ldconfig
+fi

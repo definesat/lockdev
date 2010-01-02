@@ -1,41 +1,3 @@
-lockdev (1.0.1-4) unstable; urgency=low
-
-  * New maintainer (closes: #112558)
-  * Removed umask calls (closes: #115108)
-  * Now calls ldconfig in postrm instead of prerm
-
- -- Pawel Wiecek <coven@debian.org>  Tue,  9 Apr 2002 14:39:54 +0200
-
-lockdev (1.0.1-3) unstable; urgency=low
-
-  * debian/copyright: upstream location changed back to the Debian ftp
-    archives
-  * debian/control (Standards-Version): bumped to 3.5.6
-    (Maintainer): set to Debian QA Team
-  * debian/policy: standards-version bumped to 3.5.6
-
- -- Gergely Nagy <algernon@debian.org>  Sun, 16 Sep 2001 22:34:51 +0200
-
-lockdev (1.0.1-2) unstable; urgency=low
-
-  * Added missing symlinks to some manual pages (Closes: #99549)
-  * Standards-Version bumped to 3.5.5
-  * Only call ldconfig upon configure and remove
-
- -- Gergely Nagy <algernon@debian.org>  Sun, 10 Jun 2001 09:41:20 +0200
-
-lockdev (1.0.1-1) unstable; urgency=low
-
-  * New maintainer
-  * Acknowledge NMU: Closes: #41522
-  * Recompiled with new perl (Closes: #80662)
-  * Corrected missing symlink bug (Closes: #88888)
-  * Updated to latest perl policy (Closes: #95410)
-  * Added build-depends
-  * Bumped Standards-Version to 3.5.4
-
- -- Gergely Nagy <algernon@debian.org>  Wed, 23 May 2001 17:24:23 +0200
-
 lockdev (1.0.0) unstable; urgency=low
 
   * added management of pseudo device /dev/tty , thanx to Alan Cox.
@@ -218,3 +180,4 @@ liblockdev0 (0.1) unstable; urgency=low
   * Initial Release.
 
  -- Fabrizio Polacco <fpolacco@debian.org>  Thu,  4 Sep 1997 14:13:23 +0300
+

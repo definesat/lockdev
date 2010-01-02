@@ -1,8 +1,7 @@
-# this include do nothing if not run as a sub-make of debian/rules
--include debian/policy
-
+-include Rules.mk
 
 libname	= liblockdev
+pkgname = lockdev
 
 objs	= src/lockdev.o
 
@@ -38,8 +37,8 @@ shared ${shared}:	${objs}
 
 
 perl-lib:	static
-	cd LockDev && perl Makefile.PL INSTALLDIRS=perl
-	cd LockDev && make
+	cd LockDev && perl Makefile.PL INSTALLDIRS=vendor
+	cd LockDev && make OPTIMIZE="-O2 -g -Wall"
 	cd LockDev && make test
 
 .PHONY: install install_dev install_dbg install_doc install_run 
@@ -85,12 +84,7 @@ mostyclean:	clean
 
 distclean:	mostyclean perl-clean
 
-.PHONY: distribute debian tarball
-distribute:	debian tarball
-debian:
-	dpkg-buildpackage -rfakeroot 2>&1 | tee ../log.${VER}
-tarball:
-	${MAKE} -f debian/rules clean
-	cd .. 	&& tar -cvf - ${libname}-${VER} | gzip -9c > ${libname}_${VER}.tgz
-
-
+.PHONY: distribute dist tarball
+dist distribute:	tarball
+tarball: distclean
+	cd .. 	&& tar -cvf - ${pkgname}-${VER} --exclude='${pkgname}-${VER}/debian' | gzip -9c > ${pkgname}_${VER}.tgz

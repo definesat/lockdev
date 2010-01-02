@@ -1,24 +1,25 @@
 Source: lockdev
 Section: libs
 Priority: optional
-Maintainer: Fabrizio Polacco <fpolacco@debian.org>
-Standards-Version: 3.1.0
+Maintainer: Pawel Wiecek <coven@debian.org>
+Standards-Version: 3.5.6
+Build-Depends: perl (>= 5.6.0-16), debhelper (>= 2.0.40)
 
 Package: liblockdev1
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}
-Description: Run-time shared library (libc6) for locking devices.
+Description: Run-time shared library for locking devices.
  It provides a reliable way to put an exclusive lock to
  devices using _both_ FSSTND and SVr4 methods.
 
 Package: liblockdev1-dev
 Section: devel
 Architecture: any
-Depends: liblockdev1 (=${Source-Version}), libc6-dev
+Depends: liblockdev1 (= ${Source-Version}), libc6-dev
 Conflicts: liblockdev0-dev, liblockdev0g-dev 
 Replaces: liblockdev0-dev, liblockdev0g-dev
-Description: Development library (libc6) for locking devices.
+Description: Development library for locking devices.
  It provides a reliable way to put an exclusive lock to
  devices using _both_ FSSTND and SVr4 methods.
  .
@@ -27,10 +28,10 @@ Description: Development library (libc6) for locking devices.
 Package: liblockdev1-dbg
 Section: devel
 Architecture: any
-Depends: liblockdev1 (=${Source-Version}), liblockdev1-dev (=${Source-Version})
+Depends: liblockdev1 (= ${Source-Version}), liblockdev1-dev (= ${Source-Version})
 Conflicts: liblockdev0-dbg, liblockdev0g-dbg 
 Replaces: liblockdev0-dbg, liblockdev0g-dbg
-Description: Debugging library (libc6) for locking devices.
+Description: Debugging library for locking devices.
  It provides a reliable way to put an exclusive lock to
  devices using _both_ FSSTND and SVr4 methods.
  .
