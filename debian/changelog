@@ -1,3 +1,65 @@
+lockdev (1.0.0) unstable; urgency=low
+
+  * added management of pseudo device /dev/tty , thanx to Alan Cox.
+  * added unconditional malloc of supplied device argoment.
+  * changed name of the shared lib to end in .so
+  * changed Makefile.PL because the perl manpage disappeared.
+  * Changed symbols in the API as suggested by Daniel Quinlan and 
+    Erik Troan. Changed soname accordingly.
+  * Corrected manpages and added LSB proposal (draft 2).
+  * corrected cua device management: use linux/major.h to determine the
+    cua major number; conditioned to __linux__
+  * Changed LICENSE file to hold the LGPL 2.1
+
+ -- Fabrizio Polacco <fpolacco@debian.org>  Wed,  1 Dec 1999 12:59:10 +0200
+
+lockdev (0.11.1) unstable; urgency=low
+
+  * NMU for the perl upgrade. Closes: #41522
+  * Corrected the rules files to conform to perl policy 1.0.1.
+  * Compiled with perl-5.005.
+  * Corrected the location of the license.
+  * Upgraded standards-version to 2.5.1
+
+ -- Raphael Hertzog <rhertzog@hrnet.fr>  Mon, 19 Jul 1999 20:51:00 +0200
+
+lockdev (0.11) unstable; urgency=low
+
+  * Avoided repetute locking of the semaphore.
+  * Corrected special case of semaphore misbehaviour (found while
+    crosschecking between two instancies running under gdb).
+  * Added modification on-the-fly of major number of device from 4 to 5
+    in case it was referring to one of the 64 cua devices; it now locks
+    the major+minor numbers of the corresponding ttyS device. The name
+    remains unaffected, as it could be an arbitrary name.
+    (Thanx to Daniel Quinlan <quinlan@transmeta.com>)
+  * Tryed to use fcntl instead of flock, after suggestion of Daniel
+    Quinlan, to permit use on NFS mounted partitions.
+    I wasn't able to make it correctly work, so I conditioned the
+    changes and left the code there, for further (future)
+    investigations. Any help highly appreciated.
+  * changed third file (LCK..<pid>) to have three dots, and made it stay
+    there, as a quick reference. It doesn't hurt, and shouw the pid with
+    a simple ls -l
+  * Added full text of LGPL licence instead of GPL one added in the
+    previous version (oops).
+
+ -- Fabrizio Polacco <fpolacco@debian.org>  Wed,  2 Jun 1999 15:58:03 +0300
+
+lockdev (0.10) unstable; urgency=low
+
+  * Added ttylock.h as Compatibility API to AIX. Programs written for
+    that environment can be linked directly to lockdev library.
+    (On AIX the symbols are in libc, so special care should be used)
+  * changed location of manpages to /usr/share/man.
+  * changed the name of the source to lockdev_0.10.tar.gz
+  * changed address of FSF in Copyright file, added the full GPL text as
+    LICENSE (only in the source), corrected name of the mailing list.
+  * changed name of changelog, just to make lintian happier.
+  * corrected name of docs dir for perl package.
+
+ -- Fabrizio Polacco <fpolacco@debian.org>  Thu,  8 Apr 1999 21:04:53 +0300
+
 liblockdev (0.9a) frozen unstable; urgency=low
 
   * Added more tests in postinst of liblockdev0g-dbg, to avoid strange

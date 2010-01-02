@@ -8,8 +8,6 @@ WriteMakefile(
        'DEFINE'	=> '',
           'INC'	=> '-I../src',
      'MYEXTLIB'	=> '../liblockdev.a',
-       'PREFIX'	=> '../debian/tmp/usr',
- 'INST_MAN3DIR'	=> '../debian/tmp/usr/man/man3',
 );
 
 sub MY::postamble {

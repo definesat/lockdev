@@ -15,7 +15,7 @@ ifdef _debian_policy_
 
 # this is the version of the policy to be included in 
 # debian/control file through $${update_standards_version} 
-std-version     = 2.4.0
+std-version     = 3.1.0
 
 version=${shell expr `pwd` : '.*-\([0-9.]*\)'}
 version_major=${shell expr `pwd` : '.*-\([0-9]*\).[0-9.]*'}
@@ -42,10 +42,10 @@ d_ulib  = ${d_build}/usr/lib
 d_bin   = ${d_build}/usr/bin
 d_sbin  = ${d_build}/usr/sbin
 d_incl  = ${d_build}/usr/include
-d_man   = ${d_build}/usr/man
 d_menu  = ${d_build}/usr/lib/menu
+d_man   = ${d_build}/usr/share/man
 d_locl  = ${d_build}/usr/share/locale
-d_doc   = ${d_build}/usr/doc/${package}
+d_doc   = ${d_build}/usr/share/doc/${package}
 
 d_dirs  = ${d_deb} ${d_etc} ${d_lib} ${d_usr} ${d_ulib} ${d_bin} ${d_sbin} ${d_incl} ${d_man} ${d_menu} ${d_locl} ${d_doc}
 
@@ -92,14 +92,24 @@ find . -path './DEBIAN' -prune -o -type f -printf "%P "       \
 endef
 
 ### can set a prefix to install for different binary packages.
-### eg.:	prefix="dbg_" && cd debian && ${install_DEBIAN_scripts}
+### eg.:	prefix="dbg" && cd debian && ${install_DEBIAN_scripts}
 ### will install debian/dbg_postinst as tmp/DEBIAN/postinst  ...
 define install_DEBIAN_scripts
+if [ -n "$${prefix}" ] ;\
+then postfix="-$${prefix}"; prefix="$${prefix}_";fi;\
+${install_bin} /dev/null ${d_deb}/postinst && echo "#!/bin/sh -e" >> ${d_deb}/postinst ;\
+${install_bin} /dev/null ${d_deb}/prerm && echo "#!/bin/sh -e" >> ${d_deb}/prerm ;\
 for script in preinst postinst prerm postrm; \
 do	if test -e "$${prefix}$${script}"; \
 	then	echo "  installing $${prefix}$${script}"; \
 		${install_bin} $${prefix}$${script} ${d_deb}/$${script} ; fi; \
-done
+done; \
+sed "s/#PACKAGE#/${package}$${postfix}/g" \
+	/usr/share/debhelper/autoscripts/postinst-doc \
+	>> ${d_deb}/postinst ; \
+sed "s/#PACKAGE#/${package}$${postfix}/g" \
+	/usr/share/debhelper/autoscripts/prerm-doc \
+	>> ${d_deb}/prerm ;
 endef
 
 define update_standards_version

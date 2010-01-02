@@ -1,29 +1,34 @@
 /*
  *	lockdev.c
- *	(c) 1997 by Fabrizio Polacco <fpolacco@debian.org>
+ *	(c) 1997, 1999 by Fabrizio Polacco <fpolacco@debian.org>
  *	this source program is part of the liblockdev library.
  *
- *	This program is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Library General Public
- *	License as published by the Free Software Foundation; version 2
- *	dated June, 1991.
+ *
+ *	This program is free software; you can redistribute it and/or 
+ *	modify it under the terms of the GNU Lesser General Public 
+ *	License (LGPL) as published by the Free Software Foundation; 
+ *	version 2.1 dated February 1999.
  *
  *	This program is distributed in the hope that it will be useful,
  *	but WITHOUT ANY WARRANTY; without even the implied warranty of
  *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *	GNU General Public License for more details.
  *
- *	You should have received a copy of the GNU Library General
- *	Public License along with this program;  if not, write to the
- *	Free Software Foundation, Inc., 675 Mass Ave., Cambridge, MA
- *	02139, USA.
+ *	You should have received a copy of the GNU Lesser General 
+ *	Public License (LGPL) along with this program;  if not, write 
+ *	to the Free Software Foundation, Inc.,
+ *	59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ *	On Debian GNU/Linux systems, the complete text of the 
+ *	GNU Library General Public License can be found in
+ *	`/usr/share/common-licenses/LGPL'.
  *
  *
  *	This library provides a stable way to lock devices on a Linux or
  *	Unix system, both following FSSTND 1.2 and SVr4 device locking
  *	methods, and it's built to be portable and to avoid conflicts
  *	with other programs.
- *	It is highly reccommended that all programs that needs to lock a
+ *	It is highly reccommended that all programs that need to lock a
  *	device (or test if it is locked, call the functions defined in
  *	the public interface of this library.
  *
@@ -31,7 +36,7 @@
  *	lock file name conventions, simply add the proper sprintf in the
  *	conditional statement at the beginning of this source.
  *
- *	pid_t	is_dev_lock( const char * devname)
+ *	pid_t	dev_testlock( const char * devname)
  *
  *		Given a device name returns zero if the device is not
  *		locked, otherways returns the pid number ( > 0 ) of the
@@ -39,7 +44,7 @@
  *		existance. Stale locks are removed. ( -1 ) is returned
  *		on error (device not exist or has wrong name).
  *
- *	pid_t	lock_dev( const char * devname)
+ *	pid_t	dev_lock( const char * devname)
  *		First it makes a very simple check that the device
  *		filename isn't locked, then checks for the lockfile SVr4
  *		style (these checks are redundant, just to avoid the
@@ -55,13 +60,13 @@
  *		of the active process that owns the lock or -1 for some
  *		kind of error.
  *
- *	pid_t	relock_dev( const char * devname, const pid_t old_pid)
+ *	pid_t	dev_relock( const char * devname, const pid_t old_pid)
  *		checks that the locks exist and is owned by the old_pid
  *		(if non zero), and then rewrites the pid in the files,
  *		thus reassigning the ownership of the lock to the
  *		current process, usually a child of the original one.
  *
- *	pid_t	unlock_dev( const char * devname, const pid_t pid)
+ *	pid_t	dev_unlock( const char * devname, const pid_t pid)
  *		Given a device name it checks that the lock files be
  *		owned by the process in argument (if non-zero), then
  *		deletes them. Lock files are anyway removed unless they
@@ -70,7 +75,7 @@
  *		removal of both files, otherways a -1 value is returned
  *		to indicate an error. The order in which they are
  *		deleted is important, and is the reverse of the order in
- *		which they are created in lock_dev() .
+ *		which they are created in dev_lock() .
  *
  *	All these functions use a semaphore (a file named LOCKDEV in the
  *	defined lock directory) locked using flock( LOCK_EX) on the
@@ -91,7 +96,7 @@
  *	default) is for error conditions and semaphore status, 2 is for
  *	normal conditions checks, and 3 is to check all entries in a
  *	function.
- *	If the library is compiled without _DDEBUG, the global int is
+ *	If the library is compiled without -DDEBUG, the global int is
  *	not used in any part, but the simbols still exists so it is
  *	possible to use them safely in your code.
  *
@@ -102,6 +107,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <paths.h>
 #ifndef _PATH_LOCK
@@ -117,7 +123,12 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/file.h>
+#if defined (__linux__)
 #include <linux/kdev_t.h>
+#include <linux/major.h>
+#else
+#  error "put here a define for MAJOR and MINOR"
+#endif
 
 #include "lockdev.h"
 
@@ -135,7 +146,7 @@ static		int	_dl_unlock_semaphore	( int value);
 static inline	int	_dl_lock_semaphore	( void);
 static inline	int	_dl_block_semaphore	( void);
 static		pid_t	_dl_check_lock	( const char * lockname);
-static const	char *	_dl_check_devname	( const char * devname);
+static		char *	_dl_check_devname	( const char * devname);
 
 
 #define	SEMAPHORE	"LOCKDEV"
@@ -187,8 +198,8 @@ _dl_filename_0( name, pid)
 {
 	int l;
 	_debug( 3, "_dl_filename_0 (pid=%d)\n", (int)pid);
-	/* file of type /var/lock/LCK..<pid> */
-	l = sprintf( name, "%s/LCK..%d", LOCK_PATH, (int)pid);
+	/* file of type /var/lock/LCK...<pid> */
+	l = sprintf( name, "%s/LCK...%d", LOCK_PATH, (int)pid);
 	_debug( 2, "_dl_filename_0 () -> len=%d, name=%s<\n", l, name);
 	return l;
 }
@@ -200,10 +211,17 @@ _dl_filename_1( name, st)
 	const struct stat * st;
 {
 	int l;
+	int add = 0;
 	_debug( 3, "_dl_filename_1 (stat=%d)\n", (int)st->st_rdev);
+#if defined (__linux__)
+	/* this changes the major from 5 to 4 if it was a cua device */
+	if ( (int)st->st_rdev >= (TTYAUX_MAJOR*256)+64
+			&& (int)st->st_rdev <= (TTYAUX_MAJOR*256)+127 )
+		add = (TTY_MAJOR - TTYAUX_MAJOR)*256;
+#endif /* __linux__ */
 	/* lockfile of type /var/lock/LCK.004.064 */
 	l = sprintf( name, "%s/LCK.%03d.%03d", LOCK_PATH,
-		(int)MAJOR( st->st_rdev), (int)MINOR( st->st_rdev));
+		(int)MAJOR( add+st->st_rdev), (int)MINOR( add+st->st_rdev));
 	_debug( 2, "_dl_filename_1 () -> len=%d, name=%s<\n", l, name);
 	return l;
 }
@@ -274,7 +292,23 @@ _dl_get_semaphore( flag)
 			}
 			return -1;
 		}
+#ifdef USE_FCNTL
+		/* this does not work. Why? */
+		while ( fcntl( semaphore, F_SETLK, (long)F_WRLCK) < 0 ) {
+			if (( errno == EACCES )
+			||  ( errno == EAGAIN )) {
+				if ( flag2-- ) {
+					sleep( 1);
+					continue;
+				}
+				semaphore = -1;
+				return EWOULDBLOCK;
+			}
+			return -1;
+		}
+#endif /* if USE_FCNTL */
 	}
+#ifndef USE_FCNTL
 	while ( flock( semaphore, LOCK_EX | LOCK_NB) < 0 ) {
 		if ( errno == EWOULDBLOCK ) {
 			if ( flag2-- ) {
@@ -285,6 +319,7 @@ _dl_get_semaphore( flag)
 		}
 		return -1;
 	}
+#endif /* not USE_FCNTL */
 	return 0;	/* file locked */
 }
 
@@ -320,6 +355,8 @@ _dl_block_semaphore()
 	return  _dl_get_semaphore( 3);
 }
 
+static pid_t pid_read = 0; /* read also by dev_testlock */
+
 /* for internal use */
 /* zero means: we don't own the lock; maybe someone else */
 static pid_t
@@ -327,7 +364,6 @@ _dl_check_lock( lockname)
 	const char * lockname;
 {
 	/* no check on lockname */
-	pid_t pid = 0;
 	FILE *fd = 0;
 	int j = 0;
 
@@ -344,20 +380,22 @@ _dl_check_lock( lockname)
 			return -1;
 		}
 	}
-	j = fscanf( fd, "%d", &pid);
+	j = fscanf( fd, "%d", &pid_read);
 	fclose( fd);
-	_debug( 2, "_dl_check_lock() read %d value = %d\n", j, pid);
+	_debug( 2, "_dl_check_lock() read %d value = %d\n", j, pid_read);
 
 	/* checks content's format */
 	if ( j == 1 ) {
 		/* checks process existence */
-		if ( kill( pid, 0) == 0 ) {
-			_debug( 2, "_dl_check_lock() locked by %d\n", (int)pid);
-			return pid;
+		if ( kill( pid_read, 0) == 0 ) {
+			_debug( 2, "_dl_check_lock() locked by %d\n", (int)pid_read);
+			return pid_read;
 		}
+	} else {
+		pid_read = 0;
 	}
 	/* wrong format or no process */
-	_debug( 2, "_dl_check_lock() removing stale lock by %d\n", (int)pid);
+	_debug( 2, "_dl_check_lock() removing stale lock by %d\n", (int)pid_read);
 
 	/* We own a semaphore lock, so ALL the processes that uses this
 	 * library are waiting for us to complete, or are exiting.
@@ -398,7 +436,7 @@ _dl_check_lock( lockname)
 			return -1;
 		}
 		fscanf( fd, "%d", &pid2);
-		if ( pid2 && (pid2 != pid) && ( kill( pid2, 0) == 0 )) {
+		if ( pid2 && (pid2 != pid_read) && ( kill( pid2, 0) == 0 )) {
 			/* lock file was changed! let us quickly
 			 * put it back again
 			 */
@@ -423,32 +461,37 @@ _dl_check_lock( lockname)
 }
 
 /* for internal use */
-static const char *
+static char *
 _dl_check_devname( devname)
 	const char * devname;
 {
 	int l;
 	const char * p;
+	char *m;
 
 	/* devname can be absolute, relative to PWD or a single
 	 * filename, in any case we assume that the file is in /dev;
 	 * maybe we should check it and do something if not?
 	 */
-	if ( ! (p=strrchr( devname, '/')))
-		p = devname;	/* only a filename */
-	else
-		p++;	/* was pointing to the slash */
-	_debug( 3, "_dl_check_devname(%s) name = %s\n", devname, p);
+	p = devname;	/* only a filename */
+	while ( (m=strrchr( p, '/')) != 0 ) {
+		p = m+1;	/* was pointing to the slash */
+		_debug( 3, "_dl_check_devname(%s) name = %s\n", devname, p);
+		if ( strcmp( p, "tty") == 0 ) 
+			p = ttyname( 0); /* this terminal, if it exists */
+	}
 	if ( ((l=strlen( p)) == 0 ) || ( l > (MAXPATHLEN - strlen(LOCK_PATH)) ))
 	 	return 0;
-	return p;
+	if ( ! (m = malloc( 1 + l)) )
+		return 0;
+	return strcpy( m, p);
 }
 
 
 /* exported by the interface file lockdev.h */
 /* ZERO means that the device wasn't locked, but could have been locked later */
 pid_t
-is_dev_lock( devname)
+dev_testlock( devname)
 	const char * devname;
 {
 	const char * p;
@@ -466,12 +509,12 @@ is_dev_lock( devname)
 		signal( SIGUSR2, _dl_sig_handler);
 	}
 #endif /* DEBUG */
-	_debug( 3, "is_dev_locked(%s)\n", devname);
+	_debug( 3, "dev_testlock(%s)\n", devname);
 	if ( ! (p=_dl_check_devname( devname)) )
 	 	close_n_return( -1);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
-	_debug( 2, "is_dev_locked() device = %s\n", device);
+	_debug( 2, "dev_testlock() device = %s\n", device);
 
 	/* check the device name for existence and retrieve the major
 	 * and minor numbers
@@ -489,25 +532,42 @@ is_dev_lock( devname)
 	if ( (pid=_dl_check_lock( lock)) )
 		close_n_return( pid);
 
-	/* do the same with the new style lock file name (a la SVr4);
+	/* and also check if a pid file was left around 
+	 * do this before the static var is wiped
+	 * BUT! we don't fail in case the process exists, as this is not
+	 * a lock file, just a pid holder!
+	 */
+	if ( pid_read ) {
+		_dl_filename_0( lock, pid_read);
+		_dl_check_lock( lock);
+	}
+
+	/* do the check with the new style lock file name (a la SVr4);
 	 * the reason for this order is that is much more probable that
-	 * another program uses the FSSTND lock without the mew one than
+	 * another program uses the FSSTND lock without the new one than
 	 * the contrary; anyway we do both tests.
 	 */
 	/* lockfile of type /var/lock/LCK.004.064 */
 	_dl_filename_1( lock, &statbuf);
 	if ( (pid=_dl_check_lock( lock)) )
 		close_n_return( pid);
+	if ( pid_read ) {
+		_dl_filename_0( lock, pid_read);
+		_dl_check_lock( lock);
+	}
+
+
 	close_n_return( 0);
 }
 
 /* exported by the interface file lockdev.h */
 pid_t
-lock_dev( devname)
+dev_lock( devname)
 	const char * devname;
 {
 	const char * p;
 	char device[MAXPATHLEN+1];
+	char lock[MAXPATHLEN+1];
 	char lock0[MAXPATHLEN+1];
 	char lock1[MAXPATHLEN+1];
 	char lock2[MAXPATHLEN+1];
@@ -524,14 +584,14 @@ lock_dev( devname)
 		signal( SIGUSR2, _dl_sig_handler);
 	}
 #endif /* DEBUG */
-	_debug( 3, "lock_dev(%s)\n", devname);
+	_debug( 3, "dev_lock(%s)\n", devname);
 	if (oldmask == -1 )
 		oldmask = umask( 0);	/* give full permissions to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
 	 	close_n_return( -1);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
-	_debug( 2, "lock_dev() device = %s\n", device);
+	_debug( 2, "dev_lock() device = %s\n", device);
 
 	/* check the device name for existence and retrieve the major
 	 * and minor numbers
@@ -542,7 +602,7 @@ lock_dev( devname)
 
 	/* now get our own pid */
 	our_pid = getpid();
-	_debug( 2, "lock_dev() our own pid = %d\n", (int)our_pid);
+	_debug( 2, "dev_lock() our own pid = %d\n", (int)our_pid);
 
 	/* We will use this algorithm:
 	 * first we build a file using the pid in the name (garanteed to
@@ -569,6 +629,10 @@ lock_dev( devname)
 		unlink( lock0);
 		close_n_return( pid);	/* error or locked by someone else */
 	}
+	if ( pid_read ) {	/* modifyed by _dl_check_lock() */
+		_dl_filename_0( lock, pid_read);
+		_dl_check_lock( lock);	/* remove stale pid file */
+	}
 	/* not locked or already owned by us */
 
 	/* test the lock and try to lock; repeat untill an error or a
@@ -586,6 +650,10 @@ lock_dev( devname)
 		/* error or another one owns it now */
 		unlink( lock0);
 		close_n_return( pid);
+	}
+	if ( pid_read ) {	/* modifyed by _dl_check_lock() */
+		_dl_filename_0( lock, pid_read);
+		_dl_check_lock( lock);	/* remove stale pid file */
 	}
 	/* from this point lock1 is OUR! */
 
@@ -607,9 +675,16 @@ lock_dev( devname)
 		unlink( lock1);
 		close_n_return( pid);
 	}
+	/* quite unlike, but ... */
+	if ( pid_read ) {	/* modifyed by _dl_check_lock() */
+		_dl_filename_0( lock, pid_read);
+		_dl_check_lock( lock);	/* remove stale pid file */
+	}
 
 	/* OK, the lock is our! now remove the pid-file */
-	unlink( lock0);
+	/* unlink( lock0); No, we leave also the pid-file, to easy
+	 * manual check in the /var/lock dir 
+	 */
 	/* Paranoid mode on: are we sure we still own the lock? There is
 	 * a race condition in removing stale locks that could have let
 	 * a fourth process acquire the lock that we beleave is our.
@@ -619,7 +694,7 @@ lock_dev( devname)
 	pid = _dl_check_lock( lock1);
 	pid2 = _dl_check_lock( lock2);
 	if (( pid == pid2 ) && ( pid == our_pid )) {
-		_debug( 2, "lock_dev() got lock\n");
+		_debug( 2, "dev_lock() got lock\n");
 		close_n_return( 0);	/* locked by us */
 	}
 	/* oh, no! someone else stepped in! */
@@ -632,10 +707,10 @@ lock_dev( devname)
 		pid2 = 0;
 	}
 	if ( pid && pid2 ) {
-		/* two different processes owns the two files: bleah! */
-		_debug( 1, "lock_dev() process %d owns file %s\n", (int)pid, lock1);
-		_debug( 1, "lock_dev() process %d owns file %s\n", (int)pid2, lock2);
-		_debug( 1, "lock_dev() process %d (we) have no lock!\n", (int)our_pid);
+		/* two different processes own the two files: bleah! */
+		_debug( 1, "dev_lock() process %d owns file %s\n", (int)pid, lock1);
+		_debug( 1, "dev_lock() process %d owns file %s\n", (int)pid2, lock2);
+		_debug( 1, "dev_lock() process %d (we) have no lock!\n", (int)our_pid);
 		close_n_return( -1);
 	}
 	close_n_return( (pid + pid2));
@@ -644,7 +719,7 @@ lock_dev( devname)
 
 /* exported by the interface file lockdev.h */
 pid_t
-relock_dev( devname, old_pid)
+dev_relock( devname, old_pid)
 	const char * devname;
 	const pid_t old_pid;
 {
@@ -665,14 +740,14 @@ relock_dev( devname, old_pid)
 		signal( SIGUSR2, _dl_sig_handler);
 	}
 #endif /* DEBUG */
-	_debug( 3, "relock_dev(%s, %d)\n", devname, (int)old_pid);
+	_debug( 3, "dev_relock(%s, %d)\n", devname, (int)old_pid);
 	if (oldmask == -1 )
 		oldmask = umask( 0);	/* give full permissions to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
 	 	close_n_return( -1);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
-	_debug( 2, "relock_dev() device = %s\n", device);
+	_debug( 2, "dev_relock() device = %s\n", device);
 
 	/* check the device name for existence and retrieve the major
 	 * and minor numbers
@@ -683,7 +758,7 @@ relock_dev( devname, old_pid)
 
 	/* now get our own pid */
 	our_pid = getpid();
-	_debug( 2, "relock_dev() our own pid = %d\n", (int)our_pid);
+	_debug( 2, "dev_relock() our own pid = %d\n", (int)our_pid);
 
 	/* first check for the FSSTND-1.2 lock, get the pid of the
 	 * owner of the lock and test for its existence; in case,
@@ -703,7 +778,7 @@ relock_dev( devname, old_pid)
 
 	if ( ! pid ) {	/* not locked ??? */
 		/* go and lock it */
-		return( lock_dev( devname));
+		return( dev_lock( devname));
 	}
 
 	/* we don't rewrite the pids in the lock files untill we're sure
@@ -723,19 +798,20 @@ relock_dev( devname, old_pid)
 	fprintf( fd, "%10d\n", (int)our_pid);
 	fclose( fd);
 
-	_debug( 2, "relock_dev() lock changed\n");
+	_debug( 2, "dev_relock() lock changed\n");
 	close_n_return( 0);	/* locked by us */
 }
 
 
 /* exported by the interface file lockdev.h */
 pid_t
-unlock_dev( devname, pid)
+dev_unlock( devname, pid)
 	const char * devname;
 	const pid_t pid;
 {
 	const char * p;
 	char device[MAXPATHLEN+1];
+	char lock0[MAXPATHLEN+1];
 	char lock1[MAXPATHLEN+1];
 	char lock2[MAXPATHLEN+1];
 	struct stat statbuf;
@@ -750,14 +826,14 @@ unlock_dev( devname, pid)
 		signal( SIGUSR2, _dl_sig_handler);
 	}
 #endif /* DEBUG */
-	_debug( 3, "unlock_dev(%s, %d)\n", devname, (int)pid);
+	_debug( 3, "dev_unlock(%s, %d)\n", devname, (int)pid);
 	if (oldmask == -1 )
 		oldmask = umask( 0);	/* give full permissions to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
 	 	close_n_return( -1);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
-	_debug( 2, "unlock_dev() device = %s\n", device);
+	_debug( 2, "dev_unlock() device = %s\n", device);
 
 	/* check the device name for existence and retrieve the major
 	 * and minor numbers
@@ -782,12 +858,16 @@ unlock_dev( devname, pid)
 	if ( pid && wpid && pid != wpid )
 		close_n_return( wpid);	/* error or locked by someone else */
 
+	_dl_filename_0( lock0, wpid);
+	if ( wpid == _dl_check_lock( lock0))
+		unlink( lock0);
+
 	/* anyway now we remove the files, in the reversed order than
 	 * they have been built.
 	 */
 	unlink( lock2);
 	unlink( lock1);
-	_debug( 2, "unlock_dev() unlocked\n");
+	_debug( 2, "dev_unlock() unlocked\n");
 	close_n_return( 0);	/* successfully unlocked */
 }
 

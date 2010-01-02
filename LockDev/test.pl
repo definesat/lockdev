@@ -19,11 +19,11 @@ print "ok 1\n";
 # of the test code):
 
 # 2 no lock
-print &LockDev::is_dev_lock( "/dev/ttyS3") == 0 ?	"ok 2\n" : "not ok 2\n";
-print &LockDev::lock_dev( "/dev/ttyS3") == 0	?	"ok 3\n" : "not ok 3\n";
-print &LockDev::is_dev_lock( "/dev/ttyS3") == $$ ?	"ok 4\n" : "not ok 4\n";
-print &LockDev::relock_dev( "/dev/ttyS3", 0) == 0 ?	"ok 5\n" : "not ok 5\n";
-print &LockDev::is_dev_lock( "/dev/ttyS3") == $$ ?	"ok 6\n" : "not ok 6\n";
-print &LockDev::unlock_dev( "/dev/ttyS3", $$) == 0 ?	"ok 7\n" : "not ok 7\n";
-print &LockDev::is_dev_lock( "/dev/ttyS3") == 0 ?	"ok 8\n" : "not ok 8\n";
+print &LockDev::dev_testlock( "/dev/ttyS3")	== 0  ? "ok 2\n" : "not ok 2\n";
+print &LockDev::dev_lock(     "/dev/ttyS3")	== 0  ? "ok 3\n" : "not ok 3\n";
+print &LockDev::dev_testlock( "/dev/ttyS3")	== $$ ? "ok 4\n" : "not ok 4\n";
+print &LockDev::dev_relock(   "/dev/ttyS3", 0)	== 0  ? "ok 5\n" : "not ok 5\n";
+print &LockDev::dev_testlock( "/dev/ttyS3")	== $$ ? "ok 6\n" : "not ok 6\n";
+print &LockDev::dev_unlock(   "/dev/ttyS3", $$)	== 0  ? "ok 7\n" : "not ok 7\n";
+print &LockDev::dev_testlock( "/dev/ttyS3")	== 0  ? "ok 8\n" : "not ok 8\n";
 

@@ -1,4 +1,4 @@
-# this include do nothing if nor run as a sub-make of debian/rules
+# this include do nothing if not run as a sub-make of debian/rules
 -include debian/policy
 
 
@@ -11,7 +11,7 @@ VER	= $(shell expr `pwd` : '.*-\([0-9.]*\)')
 MVER	= ${shell expr `pwd` : '.*-\([0-9]*\).[0-9]*'}
 
 static	= ${libname}.a
-shared	= ${libname}.so.${VER}
+shared	= ${libname}.${VER}.so
 soname	= ${libname}.so.${MVER}
 
 # overwritten by caller (e.g.: debian/rules)
@@ -20,31 +20,37 @@ srcdir=.
 
 libdir	= ${basedir}/lib
 incdir	= ${basedir}/include
-mandir	= ${basedir}/man
+mandir	= ${basedir}/share/man
 
 CC	= gcc
-CFLAGS	= "-g -O2 -fPIC -Wall -pipe -D_REENTRANT"
+LCFLAGS	= -g -O2 -fPIC -Wall -pipe -D_REENTRANT 
+CFLAGS	= -g
+LDLIBS	= -llockdev
 
+.PHONY: shared static perl-lib
 ALL:	shared static perl-lib
-
-install:	install_dev install_dbg install_doc install_run
 
 static ${static}:       ${objs}
 	$(AR) $(ARFLAGS) ${static} $^
 
 shared ${shared}:	${objs}
-	${CC} ${CFLAGS} -shared -Wl,-soname,${soname} $^ -lc ${LIBS} -o ${shared}
+	${CC} ${LCFLAGS} -shared -Wl,-soname,${soname} $^ -lc -o ${shared}
+
 
 perl-lib:	static
 	cd LockDev && perl Makefile.PL INSTALLDIRS=perl
 	cd LockDev && make
 	cd LockDev && make test
 
+.PHONY: install install_dev install_dbg install_doc install_run 
+install:	install_dev install_dbg install_doc install_run
+
 install_dev:	${static} src/lockdev.h
 	install -m755 -d	${libdir}
 	install -m644 ${static}	${libdir}
 	install -m755 -d	${incdir}
 	install -m644 src/lockdev.h	${incdir}
+	install -m644 src/ttylock.h	${incdir}
 
 install_debug:	${static} ${shared}
 	install -m755 -d	${libdir}/debug
@@ -64,6 +70,7 @@ install_run:	${shared}
 	install -m755 -d	${libdir}
 	install -m644 ${shared}	${libdir}
 
+.PHONY: clean distclean perl-clean mostyclean 
 perl-clean:	clean
 	cd LockDev && rm -rf *~ *.o LockDev.bs LockDev.c \
 		Makefile Makefile.old blib pm_to_blib 
@@ -78,9 +85,12 @@ mostyclean:	clean
 
 distclean:	mostyclean perl-clean
 
-distribute:
+.PHONY: distribute debian tarball
+distribute:	debian tarball
+debian:
+	dpkg-buildpackage -rfakeroot 2>&1 | tee ../log.${VER}
+tarball:
 	${MAKE} -f debian/rules clean
 	cd .. 	&& tar -cvf - ${libname}-${VER} | gzip -9c > ${libname}_${VER}.tgz
 
-.PHONY: install install_dev install_doc install_run clean distclean perl-clean distribute 
 

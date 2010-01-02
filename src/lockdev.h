@@ -1,27 +1,28 @@
 /*
  *	lockdev.h
- *	(c) 1997 by Fabrizio Polacco <fpolacco@debian.org>
+ *	(c) 1997, 1999 by Fabrizio Polacco <fpolacco@debian.org>
  *	this source program is part of the liblockdev library.
  *
- *	liblockdev 0.1
- *	0.1-1	Wed,  3 Sep 1997 13:44:36 +0300
- *		- initial release
  *
- *
- *	This program is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU Library General Public
- *	License as published by the Free Software Foundation; version 2
- *	dated June, 1991.
+ *	This program is free software; you can redistribute it and/or 
+ *	modify it under the terms of the GNU Lesser General Public 
+ *	License (LGPL) as published by the Free Software Foundation; 
+ *	version 2.1 dated February 1999.
  *
  *	This program is distributed in the hope that it will be useful,
  *	but WITHOUT ANY WARRANTY; without even the implied warranty of
  *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *	GNU General Public License for more details.
  *
- *	You should have received a copy of the GNU Library General
- *	Public License along with this program;  if not, write to the
- *	Free Software Foundation, Inc., 675 Mass Ave., Cambridge, MA
- *	02139, USA.
+ *	You should have received a copy of the GNU Lesser General 
+ *	Public License (LGPL) along with this program;  if not, write 
+ *	to the Free Software Foundation, Inc.,
+ *	59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ *	On Debian GNU/Linux systems, the complete text of the 
+ *	GNU Library General Public License can be found in
+ *	`/usr/share/common-licenses/LGPL'.
+ *
  *
  *
  *	This library provides a stable way to lock devices on a Linux or
@@ -59,13 +60,13 @@ extern "C" {
 void	liblockdev_incr_debug __P(());
 void	liblockdev_reset_debug __P(());
 
-pid_t	is_dev_lock __P(( const char * devname));
+pid_t	dev_testlock __P(( const char * devname));
 
-pid_t	lock_dev __P(( const char * devname));
+pid_t	dev_lock __P(( const char * devname));
 
-pid_t	relock_dev __P(( const char * devname, const pid_t old_pid));
+pid_t	dev_relock __P(( const char * devname, const pid_t old_pid));
 
-pid_t	unlock_dev __P(( const char * devname, const pid_t pid));
+pid_t	dev_unlock __P(( const char * devname, const pid_t pid));
 
 
 #ifdef	__cplusplus

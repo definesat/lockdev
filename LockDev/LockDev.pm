@@ -12,12 +12,12 @@ require DynaLoader;
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 @EXPORT_OK = qw(
-	&is_dev_lock
-	&lock_dev
-	&relock_dev
-	&unlock_dev
+	&dev_testlock
+	&dev_lock
+	&dev_relock
+	&dev_unlock
 );
-$VERSION = '0.09';
+$VERSION = '1.0';
 
 sub AUTOLOAD {
     # This AUTOLOAD is used to 'autoload' constants from the constant()
@@ -57,10 +57,10 @@ LockDev - Perl extension to manage device lockfiles
 =head1 SYNOPSIS
 
   use LockDev;
-  $pid = LockDev::is_dev_lock( $device);
-  $pid = LockDev::lock_dev( $device);
-  $pid = LockDev::relock_dev( $device, $oldpid);
-  $pid = LockDev::unlock_dev( $device, $oldpid);
+  $pid = LockDev::dev_testlock( $device);
+  $pid = LockDev::dev_lock( $device);
+  $pid = LockDev::dev_relock( $device, $oldpid);
+  $pid = LockDev::dev_unlock( $device, $oldpid);
 
 =head1 DESCRIPTION
 
@@ -77,7 +77,7 @@ and their content is the pid of the process who owns the lock.
 
 =head1 METHODS
 
-  $pid = LockDev::is_dev_lock( $device);
+  $pid = LockDev::dev_testlock( $device);
 
 This method simply checks if the device is in some way locked and if
 the owner of the lock is still active (otherways it removes the lock).
@@ -85,7 +85,7 @@ It recognise a valid lock even if only one of the two lock files exists
 (and is owned by an existing process), thus permitting a safe use of
 this library toghether with programs using only FSSTND or SVr4 lock style.
 
-  $pid = LockDev::lock_dev( $device);
+  $pid = LockDev::dev_lock( $device);
 
 This method first checks if the device is already locked and then tryes
 to acquire the lock building the two lock files. First it creates the
@@ -95,7 +95,7 @@ reduces the clashes with other processes trying to lock the same device
 (even with a different name) and using this library. It has no problem
 with processes that uses only the FSSTND algorithm.
 
-  $pid = LockDev::relock_dev( $device, $oldpid);
+  $pid = LockDev::dev_relock( $device, $oldpid);
 
 This method changes the owner of an existing lock; if the pid of the
 old owner is provided, then it checks if the lock was correctly assigned
@@ -103,7 +103,7 @@ old owner is provided, then it checks if the lock was correctly assigned
 was owned by another unrelated process). If the device was not locked,
 locks it.
 
-  $pid = LockDev::unlock_dev( $device, $oldpid);
+  $pid = LockDev::dev_unlock( $device, $oldpid);
 
 This method removes the existing locks on the device. If the pid of the
 owner of the lock is provided, then it check if the locks are assigned
@@ -113,7 +113,7 @@ processes.
 =head1 RETURN VALUES
 
 All the methods in LockDev library return ZERO on successfull completion
-of the function (LockDev::is_dev_lock returns zero if there is no
+of the function (LockDev::dev_testlock returns zero if there is no
 lock on the device), otherways, if the device is currently locked by
 an existing process, they return the pid of the process owner of the
 lock.  They return a negative number when some kind of error happens.

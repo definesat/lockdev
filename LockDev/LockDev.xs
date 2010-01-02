@@ -44,26 +44,26 @@ constant(name,arg)
 	int		arg
 
 pid_t
-is_dev_lock( devname)
+dev_testlock ( devname)
 	const char * devname;
     OUTPUT:
 	RETVAL
 
 pid_t
-lock_dev ( devname)
+dev_lock ( devname)
 	const char * devname;
     OUTPUT:
 	RETVAL
 
 pid_t
-relock_dev ( devname, old_pid)
+dev_relock ( devname, old_pid)
 	const char * devname;
 	const pid_t old_pid;
     OUTPUT:
 	RETVAL
 
 pid_t
-unlock_dev ( devname, pid)
+dev_unlock ( devname, pid)
 	const char * devname;
 	const pid_t pid;
     OUTPUT:

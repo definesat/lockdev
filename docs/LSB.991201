@@ -1,0 +1,51 @@
+------- start of cut text --------------
+
+        A dynamically loadable library should be provided with the
+        Operating System for the purpose of locking devices.
+        The library should offer the following API:
+
+        pid_t   dev_testlock   ( const char * devname);
+        pid_t   dev_lock       ( const char * devname);
+        pid_t   dev_relock     ( const char * devname, pid_t old_pid);
+        pid_t   dev_unlock     ( const char * devname, pid_t pid);
+
+        where devname is the full pathname of the device to be locked,
+        old_pid and pid are the ID of the process currently owning the
+        lock (ZERO disables the check of the owner).
+        Return value for success is ZERO (for dev_testlock means that
+        there is no lock on that device), or the process ID of the owner
+        of the lock.
+        Stale locks are always removed by any call to the library.
+
+	The details of the underlying implementation are left
+	intentionally undefined to permit the development of more
+	robust locking methods than the one described in previous
+	versions of the FHS.
+	The only implementation requirement is that the library
+	must implement the old FHS method to provide
+	backward-compatibility with older programs.
+	Note that future versions of the LSB may drop this requirement.
+
+	Here is the old FHS device locking method:
+
+                The naming convention which must be used is
+                "LCK.." followed by the base name of the device.
+                For example, to lock /dev/cua0 the file "LCK..cua0"
+                would be created.
+                The format used for device lock files must be the
+                HDB UUCP lock file format.
+                The HDB format is to store the process identifier 
+                (PID) as a ten byte ASCII decimal number, with a
+                trailing newline.
+                For example, if process 1230 holds a lock file,
+                it would contain the eleven characters:
+                space, space, space, space, space, space, one,
+                two, three, zero, and newline.
+                Then, anything wishing to use /dev/cua0 can read 
+                the lock file and act accordingly (all locks in 
+                /var/lock should be world-readable).
+
+        A reference implementation of the library can be found at URL:
+        ...
+
+------- end ----------------------------

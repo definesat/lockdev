@@ -1,42 +1,54 @@
-liblockdev is (c) 1997 by Fabrizio Polacco <fpolacco@debian.org>
+
+liblockdev is (c) 1997, 1999 by Fabrizio Polacco <fab@prosa.it>
 
    This program is free software; you can redistribute it and/or 
-   modify it under the terms of the GNU Library General Public 
+   modify it under the terms of the GNU Lesser General Public 
    License (LGPL) as published by the Free Software Foundation; 
-   version 2 dated June, 1991.
+   version 2.1 dated February 1999.
 
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU Library General 
+   You should have received a copy of the GNU Lesser General 
    Public License (LGPL) along with this program;  if not, write 
-   to the Free Software Foundation, Inc., 675 Mass Ave., 
-   Cambridge, MA 02139, USA.
+   to the Free Software Foundation, Inc.,
+   59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 On Debian GNU/Linux systems, the complete text of the GNU Library General
-Public License can be found in `/usr/doc/copyright/LGPL'.
+Public License can be found in `/usr/share/common-licenses/LGPL'.
 
-This program is a PLUTO project (see http://www.pluto.linux.it )
-and is a native debian package; you can find the latest version
-in ftp://ftp.pluto.linux.it/pub/pluto/developers/liblockdev , as well as in 
-ftp://ftp.debian.org/debian/dists/unstable/source/libs/liblockdev_*.tar.gz
+This program is a native debian package; you can find the latest version in
+ftp://ftp.debian.org/debian/dists/unstable/source/libs/lockdev_*.tar.gz
 or in any Debian mirror.
 
 ================ CONTRIBUTION ================
 
 To contribute, partecipate to the development, or simply to be kept
 informed, join the mailing list sending a message to
-<liblockdev-request@pluto.linux.it>
+<liblockdev-request@lists.prosa.it>
 with the text "subscribe" in the body of the message.
 
 ================ CREDITS ================
 
-    *	Barak Pearlmutter <bap@cs.unm.edu>
+Barak Pearlmutter <bap@cs.unm.edu>
 	- code revision 
 	- suggestion for the use of the semaphore.
-
-    *	Juan Cespedes <cespedes@debian.org>
+Juan Cespedes <cespedes@debian.org>
 	- code revision 
+Daniel Quinlan <quinlan@transmeta.com>
+	- suggestion to support the cua devices.
+	- suggestions for naming of functions.
+Raphael Hertzog <rhertzog@hrnet.fr>
+	- NMU for new perl
+Adam P. Harris
+	- changes in debian postinst.
+Martin Schulze
+	- changes in perl makefile
+	- suggestions for changes in assembler stage for debug.
+Hamish Moffatt, James Troup
+	- dependencies check.
+Yann Dirson
+	- suggestions for a debugging shared library.
 

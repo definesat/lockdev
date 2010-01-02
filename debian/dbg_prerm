@@ -2,6 +2,7 @@
 
 # prerm
 
+package=liblockdev1-dbg
 libname=liblockdev.so
 
 lib_dbg=/usr/lib/debug
@@ -14,4 +15,4 @@ then	ls -A1 ${lib_dbg} 2>/dev/null \
 	then	rm -f ${lib_dbg}/${file} || true; \
 	fi
 fi
-
+  # end
