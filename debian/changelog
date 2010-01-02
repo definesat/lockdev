@@ -1,3 +1,11 @@
+lockdev (1.0.1-6) unstable; urgency=low
+
+  * Applied patch from Kristof Koehler
+    <Kristof.Koehler@stud.uni-karlsruhe.de> to fix behavior when device is
+    locked by process with different UID (closes: #215807)
+
+ -- Pawel Wiecek <coven@debian.org>  Thu, 22 Jan 2004 14:34:28 +0100
+
 lockdev (1.0.1-5.1) unstable; urgency=low
 
   * NMU

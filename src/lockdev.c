@@ -387,7 +387,7 @@ _dl_check_lock( lockname)
 	/* checks content's format */
 	if ( j == 1 ) {
 		/* checks process existence */
-		if ( kill( pid_read, 0) == 0 ) {
+		if ( ( kill( pid_read, 0) == 0 ) || (errno == EPERM) ) {
 			_debug( 2, "_dl_check_lock() locked by %d\n", (int)pid_read);
 			return pid_read;
 		}
