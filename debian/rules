@@ -115,6 +115,7 @@ binary-arch: build install
 	dh_installchangelogs ChangeLog
 	dh_installdocs
 	rm $(CURDIR)/debian/liblockdev1-dbg/usr/share/doc/liblockdev1/c*
+	rm $(CURDIR)/debian/liblockdev1-dbg/usr/share/doc/liblockdev1/NEWS.Debia*
 	dh_installexamples
 #	dh_install
 #	dh_installmenu
