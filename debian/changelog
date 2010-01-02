@@ -1,3 +1,27 @@
+lockdev (1.0.1-5.1) unstable; urgency=low
+
+  * NMU
+  * Use -fPIC code in shared lib.  Closes: #190770
+
+ -- LaMont Jones <lamont@debian.org>  Sat,  7 Jun 2003 19:27:24 -0600
+
+lockdev (1.0.1-5) unstable; urgency=low
+
+  * Completely repackaged, so it now uses standard procedures instead of some
+    mysterious stuff (closes: #166600)
+  * Updated standards version
+  * Included perl 5.8 patch from -4.1 NMU (closes: #158941)
+  * Fixed a couple of lintian errors and warnings
+
+ -- Pawel Wiecek <coven@debian.org>  Fri, 25 Apr 2003 14:17:02 +0200
+
+lockdev (1.0.1-4.1) unstable; urgency=low
+
+  * NMU for perl 5.8.
+  * Bump perl build-dependency to >= 5.8.0-7.
+
+ -- Colin Watson <cjwatson@debian.org>  Sat, 31 Aug 2002 00:29:56 +0100
+
 lockdev (1.0.1-4) unstable; urgency=low
 
   * New maintainer (closes: #112558)

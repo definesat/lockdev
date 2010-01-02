@@ -269,7 +269,7 @@ _dl_sig_handler( sig)
  */
 static int semaphore= -1;
 static char sem_name[MAXPATHLEN+1];
-/* static int oldmask= -1; */
+static int oldmask= -1;
 
 /* for internal use */
 static int
@@ -334,12 +334,10 @@ _dl_unlock_semaphore( value)
 		close( semaphore);
 		semaphore = -1;
 	}
-#if 0
 	if (oldmask != -1 ) {
 		umask( oldmask);	/* restore original mask value */
 		oldmask = -1;
 	}
-#endif
 	return( value);
 }
 
@@ -587,10 +585,8 @@ dev_lock( devname)
 	}
 #endif /* DEBUG */
 	_debug( 3, "dev_lock(%s)\n", devname);
-#if 0
 	if (oldmask == -1 )
 		oldmask = umask( 0);	/* give full permissions to files created */
-#endif
 	if ( ! (p=_dl_check_devname( devname)) )
 	 	close_n_return( -1);
 	strcpy( device, DEV_PATH);
@@ -745,10 +741,8 @@ dev_relock( devname, old_pid)
 	}
 #endif /* DEBUG */
 	_debug( 3, "dev_relock(%s, %d)\n", devname, (int)old_pid);
-#if 0
 	if (oldmask == -1 )
 		oldmask = umask( 0);	/* give full permissions to files created */
-#endif
 	if ( ! (p=_dl_check_devname( devname)) )
 	 	close_n_return( -1);
 	strcpy( device, DEV_PATH);
@@ -833,10 +827,8 @@ dev_unlock( devname, pid)
 	}
 #endif /* DEBUG */
 	_debug( 3, "dev_unlock(%s, %d)\n", devname, (int)pid);
-#if 0
 	if (oldmask == -1 )
 		oldmask = umask( 0);	/* give full permissions to files created */
-#endif
 	if ( ! (p=_dl_check_devname( devname)) )
 	 	close_n_return( -1);
 	strcpy( device, DEV_PATH);

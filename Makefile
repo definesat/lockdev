@@ -4,6 +4,7 @@ libname	= liblockdev
 pkgname = lockdev
 
 objs	= src/lockdev.o
+shobjs	= src/lockdev.z
 
 
 VER	= $(shell expr `pwd` : '.*-\([0-9.]*\)')
@@ -32,8 +33,11 @@ ALL:	shared static perl-lib
 static ${static}:       ${objs}
 	$(AR) $(ARFLAGS) ${static} $^
 
-shared ${shared}:	${objs}
+shared ${shared}:	${shobjs}
 	${CC} ${LCFLAGS} -shared -Wl,-soname,${soname} $^ -lc -o ${shared}
+
+src/lockdev.z: src/lockdev.c
+	${CC} ${CFLAGS} -c -fPIC -o $@ $?
 
 
 perl-lib:	static
