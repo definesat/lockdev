@@ -7,7 +7,7 @@ WriteMakefile(
          'LIBS'	=> [''],
        'DEFINE'	=> '',
           'INC'	=> '-I../src',
-     'MYEXTLIB'	=> '../liblockdev.a',
+     'MYEXTLIB'	=> '../src/lockdev.z',
 );
 
 sub MY::postamble {

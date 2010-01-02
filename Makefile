@@ -4,6 +4,7 @@ libname	= liblockdev
 pkgname = lockdev
 
 objs	= src/lockdev.o
+shobjs	= src/lockdev.z
 
 
 VER	= $(shell expr `pwd` : '.*-\([0-9.]*\)')
@@ -32,8 +33,11 @@ ALL:	shared static perl-lib
 static ${static}:       ${objs}
 	$(AR) $(ARFLAGS) ${static} $^
 
-shared ${shared}:	${objs}
+shared ${shared}:	${shobjs}
 	${CC} ${LCFLAGS} -shared -Wl,-soname,${soname} $^ -lc -o ${shared}
+
+src/lockdev.z: src/lockdev.c
+	${CC} ${CFLAGS} -c -fPIC -o $@ $?
 
 
 perl-lib:	static
@@ -77,6 +81,7 @@ perl-clean:	clean
 clean:
 	-find . -name '*~' | xargs --no-run-if-empty  rm -f 
 	-find . -name '*.o' | xargs --no-run-if-empty  rm -f 
+	-find . -name '*.z' | xargs --no-run-if-empty  rm -f 
 
 mostyclean:	clean
 	-rm -f *.a *.so *.so.*
@@ -87,4 +92,4 @@ distclean:	mostyclean perl-clean
 .PHONY: distribute dist tarball
 dist distribute:	tarball
 tarball: distclean
-	cd .. 	&& tar -cvf - ${pkgname}-${VER} --exclude='${pkgname}-${VER}/debian' | gzip -9c > ${pkgname}_${VER}.tgz
+	cd .. 	&& tar -cvf - ${pkgname}-${VER} | gzip -9c > ${pkgname}_${VER}.tgz
