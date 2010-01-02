@@ -1,0 +1,46 @@
+
+Instructions on how to use the debugging libraries in a debug session.
+
+In this directory (/usr/lib/debug) are included shared libraries
+compiled with debugging symbols, and installed by -dbg binary packages.
+These packages installs also the sources used to compile this library
+into a directory under /usr/src . Instructions for gdb are embedded in
+the shared library, so gdb can automatically list the source code.
+
+To use these libraries:
+
+set this environment variable:
+
+LD_LIBRARY_PATH=/usr/lib/debug; export LD_LIBRARY_PATH
+
+and run gdb <program>
+
+or directly
+
+LD_LIBRARY_PATH=/usr/lib/debug gdb <program>
+
+You don't need to recompile or link your program to debug the library
+(anyway you probably have to recompile it if you want to debug it). 
+Pay attention that gdb ignores the value of that variable when the
+program is setuid or setgid. In that case, you have to be root to have
+dbg load the library.
+
+These debug shared libraries aren't by itself slower that the stripped
+version, but they have been compiled using -DDEBUG, which might activate
+printing of debugging values, so don't use these libraries in a
+production environment, neither set the LD_LIBRARY_PATH variable in a
+global profile nor add /usr/lib/debug to /etc/ld.so.conf nor run
+ldconfig with this path.
+Otherways _all_ users will use the debugging libraries by default, as
+well as the system.
+
+It is a good idea to leave the -dbg binary installed only for the strict
+time you need it. Don't install all the -dbg libraries unless you want
+exactly debug all them together. Use dpkg -r to remove them when you
+have done with your debugging session. It also occupy less diskspace if
+you leave them in .deb format (compressed), and even better when you
+have them handy on a CD :-)
+
+[This file (README.debug) Fri, 26 Dec 1997 01:06:14 +0200
+(c) 1997 by Fabrizio Polacco <fpolacco@debian.org>
+Use it under the GPL (see /usr/doc/copyright/GPL)]

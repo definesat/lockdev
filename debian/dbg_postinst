@@ -1,0 +1,29 @@
+#!/bin/sh -e
+
+# postinst of the dbg binary package
+
+package=liblockdev0g-dbg
+
+lib_dbg=/usr/lib/debug
+file=README.debug
+
+# This installs the readme into the global directory if it isn't already there
+if	[ ! -r ${lib_dbg}/${file} ]
+then	if	[ -r /usr/doc/${package}/${file} ]
+	then	cp -a /usr/doc/${package}/${file} ${lib_dbg}
+	elif	[ -r /usr/doc/${package}/${file}.gz ]
+	then	zcat /usr/doc/${package}/${file}.gz >${lib_dbg}/${file}
+	fi
+fi
+
+# this should change a real directory into a symlink without changing the idea
+# that dpkg has of its content
+if	[ ! -L /usr/doc/${package} -a -d /usr/doc/${package} -a -d /usr/doc/liblockdev0g ]
+then	if	[ "`ls /usr/doc/${package}`" ]
+	then	mv /usr/doc/${package}/* /usr/doc/liblockdev0g
+	fi
+	rmdir /usr/doc/${package} \
+	|| mv -f /usr/doc/${package} /usr/doc/${package}.dpkg
+	ln -fs liblockdev0g /usr/doc/${package} 
+fi
+

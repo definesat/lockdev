@@ -1,0 +1,153 @@
+.TH LOCKDEV 3  "26 Dec 1997" "Linux Manpage" "Linux Programmer's Manual"
+.SH NAME
+lockdev, liblockdev, is_dev_locked, lock_dev, relock_dev, unlock_dev \- manage device lockfiles
+.SH SYNOPSIS
+.B #include <lockdev.h>
+.sp
+.BI "pid_t is_dev_lock( const char * " devname ");"
+.br
+.BI "pid_t lock_dev( const char * " devname ");"
+.br
+.BI "pid_t relock_dev( const char * " devname ", const pid_t " pid ");"
+.br
+.BI "pid_t unlock_dev( const char * " devname ", const pid_t " pid ");"
+.sp
+.BI "cc [ "flag " ... ] "file " ... -llockdev [ "library " ] "
+.SH DESCRIPTION
+The
+.B lockdev
+functions act on device locks normally located in 
+.B /var/lock .
+The lock is acquired creating a pair of files hardlinked between them
+and named after the device name (as mandated by FSSTND) and the device's
+major and minor numbers (as in SVr4 locks). This permits to circumvent a
+problem using only the FSSTND lock method when the same device exists
+under different names (for convenience or when a device must be
+accessable by more than one group of users).
+.br
+The lock file names are typically in the form
+.B LCK..ttyS1
+and 
+.B LCK.004.065 ,
+but is provided a way to easily modify them to use the library on
+different architectures. The content of those files is the pid of the
+process who owns the lock.
+.sp
+The 
+.B is_dev_lock()
+function simply checks if the device is in some way locked and if the
+owner of the lock is still active (otherways it removes the lock).
+It recognise a valid lock even if only one of the two lock files exists
+(and is owned by an existing process), thus permitting a safe use of
+this library toghether with programs using only FSSTND or SVr4 lock
+style.
+.sp
+The 
+.B lock_dev() 
+function first checks if the device is already locked and then tryes to
+acquire the lock building the two lock files. First it creates the file
+which name contains the major and minor numbers (in SVr4 style), then it
+creates the file with the device name in its name. This order reduces
+the clashes with other processes trying to lock the same device (even
+with a different name) and using this library. It has no problem with
+processes that uses only the FSSTND algorithm.
+.sp
+The 
+.B relock_dev() 
+function changes the owner of an existing lock; if the pid of the old
+owner is provided, then it checks if the lock was correctly assigned
+(otherways there is the possibility of a process acquiring a lock which
+was owned by another unrelated process). If the device was not locked,
+locks it.
+.sp
+The 
+.B unlock_dev() 
+function removes the existing locks on the device. If the pid of the
+owner of the lock is provided, then it check if the locks are assigned
+to that process, avoiding to remove locks assigned to other existing
+processes.
+
+.SH RETURN VALUES
+All the functions in 
+.B lockdev
+library return 
+.B ZERO 
+on successfull completion of the function (is_dev_lock returns zero if
+there is no lock on the device), otherways, if the device is currently
+locked by an existing process, they return the pid of the process owner
+of the lock. They return a negative number when some kind of error
+happens. Actually they all return only (-1).
+
+.SH DEBUGGING
+The 
+.B API
+has symbols used only for debugging purposis
+.sp
+.BI "int liblockdev_debug"
+.br
+.BI "void liblockdev_incr_debug( void );"
+.br
+.BI "void liblockdev_reset_debug( void );"
+.sp
+which can be used when the liblockdev library is compiled with 
+.B -DDEBUG
+flag as when using 
+.B make install-dbg ,
+which compiles a debug shared library and installs it under
+/usr/local/lib/debug (or /usr/lib/debug).
+.br
+The value of the global integer is set to 1 by the DEBUG define,
+and can be set to a different value passing a flag like 
+.B -DDEBUG=3 
+during compilation of the library, or setting the environment variable
+.B LIBLOCKDEV_DEBUG
+to the wanted value before executing your program.
+.br
+During execution of your program, the flag's value can be changed from
+your program or from another teminal, respectively using the function
+.B liblockdev_incr_debug() ,
+or sending SIGUSR1 to the running process,
+to increment the value of the integer by one, or using the function
+.B liblockdev_reset_debug() ,
+or sending SIGUSR2 to the running process,
+to set to zero the value of the global integer.
+.br
+Direct manipulation of the global integer is strongly deprecated,
+because the data structure of the symbol (actually an integer) could be
+changed later in some way, or even become a macro.
+.sp
+The library prints on stdout some informations like error conditions
+(level of 1), normal termination conditions (2) or function calling (3).
+.sp
+To use the debug shared library, simply define in your environment the
+variable LD_LIBRARY_PATH=/usr/lib/debug (or /usr/local/lib/debug if
+built using make install-dbg) and call gdb or directly your program
+without any need to recompile it. As you can check with ldd, your
+program will load the debug library instead of the normal one.
+.br
+Beware that if your program is setuid or setgid, you must become root to
+let this work, because ld.so ignores the LD_LIBRARY_PATH variable for
+security reasons.
+.sp
+On
+.B Debian GNU/Linux
+systems exists a debug binary package named
+.B liblockdev0g-dbg 
+which installs a shared library built with all
+debugging options (and the -DDEBUG flag) into /usr/lib/debug .
+
+.SH FILES
+/var/lock/LCK..<device>
+.br
+/var/lock/LCK.<major>.<minor>
+.br
+/usr/lib/liblockdev.so.0
+.br
+/usr/lib/debug/liblockdev.so.0
+
+.SH HISTORY
+(c) 1997 by Fabrizio Polacco <fpolacco@debian.org>.
+.br
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU Library General Public License as published
+by the Free Software Foundation; version 2 dated June, 1991.
