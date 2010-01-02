@@ -1,3 +1,11 @@
+lockdev (1.0.1-7) unstable; urgency=low
+
+  * Applied patch from Aurelien Jarno <aurel32@debian.org> to support
+    GNU/k*BSD (closes: #302457)
+  * Fixed patch from 1.0.1-5.1 NMU to clean after itself (!)
+
+ -- Pawel Wiecek <coven@debian.org>  Thu, 19 May 2005 21:25:43 +0200
+
 lockdev (1.0.1-6) unstable; urgency=low
 
   * Applied patch from Kristof Koehler

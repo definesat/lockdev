@@ -81,6 +81,7 @@ perl-clean:	clean
 clean:
 	-find . -name '*~' | xargs --no-run-if-empty  rm -f 
 	-find . -name '*.o' | xargs --no-run-if-empty  rm -f 
+	-find . -name '*.z' | xargs --no-run-if-empty  rm -f 
 
 mostyclean:	clean
 	-rm -f *.a *.so *.so.*
