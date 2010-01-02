@@ -1,3 +1,15 @@
+lockdev (1.0.3-1.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Fix postinst. Closes: #366384
+    + don't use numerical compares for version history, but
+      dpkg --compare-versions
+    + do never wait for someone entering a key - that could be in
+      non-interactive mode ...
+  * Add upgrade information into NEWS.Debian.
+
+ -- Andreas Barth <aba@not.so.argh.org>  Mon, 27 Nov 2006 13:11:32 +0100
+
 lockdev (1.0.3-1) unstable; urgency=low
 
   * New release
