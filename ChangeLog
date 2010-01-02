@@ -1,1 +1,15 @@
-debian/changelog
+2001-05-27  Gergely Nagy  <algernon@debian.org>
+
+	* Rules.mk: extracted from debian/policy
+
+	* debian/rules: updated to new Debian Perl policy; move shared
+	library from /lib to /usr/lib; properly strip binaries; include
+	Section and Priority in the deb package
+
+	* debian/policy: bumped standards-version, added min_perl_policy
+
+	* debian/control: added build-depends, bumped standards-version,
+	and a few cosmetic fixes
+
+	* Makefile (perl-lib): Updated to new Debian Perl policy
+	(tarball): do not include debian/
