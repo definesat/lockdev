@@ -1,3 +1,11 @@
+2006-04-20  Paweł Więcek <coven@debian.org>
+
+	* Version 1.0.3.
+
+	* src/lockdev.c: Updated _dl_filename_1 to distinguish between
+	  character and block devices. Lock file name changes thus from
+	  LCK.012.345 to LCK.C.012.345.
+	
 2005-10-03  Roger Leigh  <rleigh@debian.org>
 
 	* Version 1.0.2.
