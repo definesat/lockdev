@@ -2,8 +2,9 @@ Source: lockdev
 Section: libs
 Priority: optional
 Maintainer: Pawel Wiecek <coven@debian.org>
-Standards-Version: 3.6.1
-Build-Depends: perl (>= 5.8.0-7), debhelper (>= 3.0.0)
+Uploaders: Roger Leigh <rleigh@debian.org>
+Standards-Version: 3.6.2
+Build-Depends: perl (>= 5.8.0-7), debhelper (>= 4.0.0)
 
 Package: liblockdev1
 Section: libs

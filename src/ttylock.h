@@ -32,52 +32,37 @@
 extern "C" {
 #endif
 
-#ifndef	__P
-#  if defined	(__STDC__) || defined (_AIX) \
-		|| (defined (__mips) && defined (_SYSTYPE_SVR4)) \
-		|| defined(WIN32) || defined(__cplusplus)
-#    define	__P(protos) protos
-#  else
-#    define	__P(protos) ()
-#  endif
-#endif
-
 #include <lockdev.h>
-
 
 /* API of the library */
 
-int	ttylock __P(( char * devname));
-int	ttywait __P(( char * devname));
-int	ttyunlock __P(( char * devname));
-int	ttylocked __P(( char * devname));
+int ttylock (char * devname);
+int ttywait (char * devname);
+int ttyunlock (char * devname);
+int ttylocked (char * devname);
 
 
 static inline int
-ttylock( devname)
-	char * devname;
+ttylock(char *devname)
 {
 	/* should set errno ? */
-	return( dev_lock( devname) == 0 ? 0 : -1);
+	return dev_lock( devname) == 0 ? 0 : -1;
 }
 
 static inline int
-ttyunlock( devname)
-	char * devname;
+ttyunlock (char *devname)
 {
-	return( dev_unlock( devname, 0));
+	return dev_unlock(devname, 0);
 }
 
 static inline int
-ttylocked( devname)
-	char * devname;
+ttylocked(char *devname)
 {
-	return( dev_testlock( devname) == 0 ? 0 : -1);
+	return dev_testlock( devname) == 0 ? 0 : -1;
 }
 
 static inline int
-ttywait( devname)
-	char * devname;
+ttywait (char *devname)
 {
 	while( dev_testlock( devname)) {
 		sleep(1);

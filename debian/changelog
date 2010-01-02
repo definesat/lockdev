@@ -1,3 +1,28 @@
+lockdev (1.0.2-1) unstable; urgency=low
+
+  * New release.
+  * debian/control:
+    + Added myself as an uploader.  Thanks to Pawel Wiecek for granting
+      me co-maintainership.
+    + Build-Depend upon debhelper 4.
+    + Update to Standards-Version 3.6.2.
+  * debian/copyright:
+    + Update FSF address.
+    + Add myself as a contributor.
+  * debian/compat: Use debhelper v4.
+  * Remove all postinst and preinst templates; debhelper v4 generates
+    ldconfig calls automatically.
+  * Devices within subdirectories of /dev are locked properly, using
+    ':' as a path delimiter in the device lock name.  For example,
+    /dev/pts/2 is locked as /var/lock/LCK..pts:2
+    (Closes: #115109, #135299).
+  * Device major and minor numbers are computed using GNU libc
+    builtins, rather than kernel headers (Closes: #331139).
+  * src/sample.c debugging is amended to use the proper debugging
+    functions (Closes: #331255).
+
+ -- Roger Leigh <rleigh@debian.org>  Mon,  3 Oct 2005 20:55:51 +0100
+
 lockdev (1.0.1-7) unstable; urgency=low
 
   * Applied patch from Aurelien Jarno <aurel32@debian.org> to support

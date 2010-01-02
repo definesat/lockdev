@@ -42,32 +42,22 @@
 extern "C" {
 #endif
 
-#ifndef	__P
-#  if defined	(__STDC__) || defined (_AIX) \
-		|| (defined (__mips) && defined (_SYSTYPE_SVR4)) \
-		|| defined(WIN32) || defined(__cplusplus)
-#    define	__P(protos) protos
-#  else
-#    define	__P(protos) ()
-#  endif
-#endif
-
 #include <sys/types.h>
-
 
 /* API of the library */
 
-void	liblockdev_incr_debug __P(());
-void	liblockdev_reset_debug __P(());
+void liblockdev_incr_debug (void);
+void liblockdev_reset_debug (void);
 
-pid_t	dev_testlock __P(( const char * devname));
+pid_t dev_testlock (const char *devname);
 
-pid_t	dev_lock __P(( const char * devname));
+pid_t dev_lock (const char *devname);
 
-pid_t	dev_relock __P(( const char * devname, const pid_t old_pid));
+pid_t dev_relock (const char * devname,
+		  const pid_t  old_pid);
 
-pid_t	dev_unlock __P(( const char * devname, const pid_t pid));
-
+pid_t dev_unlock (const char * devname,
+		  const pid_t pid);
 
 #ifdef	__cplusplus
 };

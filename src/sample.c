@@ -1,17 +1,18 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "lockdev.h"
 
 void
-usage() {
+usage (void)
+{
 	fprintf( stderr, "Usage: sample [-lurd] <device>\n" );
 	exit( -1 );
 }
 
-int debug;
-
 
 int
-main( int argc, char *argv[] )
+main (int   argc,
+      char *argv[])
 {
 	int i, chld;
 	char *p, *dev, ch;
@@ -25,7 +26,7 @@ main( int argc, char *argv[] )
 			case 'u': 
 			case 'r': ch = *p; break;
 			case 'd':
-				debug = atoi(++p);
+				liblockdev_incr_debug();
 				break;
 			default: usage(); break;
 			}

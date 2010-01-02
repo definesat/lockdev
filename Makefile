@@ -92,4 +92,4 @@ distclean:	mostyclean perl-clean
 .PHONY: distribute dist tarball
 dist distribute:	tarball
 tarball: distclean
-	cd .. 	&& tar -cvf - ${pkgname}-${VER} --exclude='${pkgname}-${VER}/debian' | gzip -9c > ${pkgname}_${VER}.tgz
+	cd .. 	&& tar -cvf - ${pkgname}-${VER} | gzip -9c > ${pkgname}_${VER}.tgz

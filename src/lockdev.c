@@ -123,12 +123,10 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#if defined (__linux__)
-#include <linux/kdev_t.h>
-#include <linux/major.h>
-#elif defined (__FreeBSD_kernel__) || defined(__NetBSD_kernel__) || defined(__OpenBSD_kernel__)
-#  define MAJOR(dev) ((dev & 0xff00) >> 8)
-#  define MINOR(dev) (dev & 0xffff00ff)
+#if defined (__GNU_LIBRARY__)
+# include <sys/sysmacros.h>
+# define MAJOR(dev) gnu_dev_major (dev)
+# define MINOR(dev) gnu_dev_minor (dev)
 #else
 #  error "put here a define for MAJOR and MINOR"
 #endif
@@ -167,14 +165,14 @@ static	int	liblockdev_debug = 0;
 
 /* exported by the interface file lockdev.h */
 void
-liblockdev_incr_debug()
+liblockdev_incr_debug (void)
 {
 	liblockdev_debug++;
 }
 
 /* exported by the interface file lockdev.h */
 void
-liblockdev_reset_debug()
+liblockdev_reset_debug (void)
 {
 	liblockdev_debug = 0;
 }
@@ -191,13 +189,12 @@ liblockdev_reset_debug()
  * All types uses the macro LOCK_PATH
  */
 
-#if defined (__linux__) || defined (__FreeBSD_kernel__) || defined(__NetBSD_kernel__) || defined(__OpenBSD_kernel__)
+#if defined (__GNU_LIBRARY__) || defined (__FreeBSD_kernel__) || defined(__NetBSD_kernel__) || defined(__OpenBSD_kernel__)
 
 /* for internal use */
 static inline int
-_dl_filename_0( name, pid)
-	char * name;
-	const pid_t pid;
+_dl_filename_0 (char        *name,
+		const pid_t  pid)
 {
 	int l;
 	_debug( 3, "_dl_filename_0 (pid=%d)\n", (int)pid);
@@ -209,19 +206,12 @@ _dl_filename_0( name, pid)
 
 /* for internal use */
 static inline int
-_dl_filename_1( name, st)
-	char * name;
-	const struct stat * st;
+_dl_filename_1 (char              *name,
+		const struct stat *st)
 {
 	int l;
 	int add = 0;
 	_debug( 3, "_dl_filename_1 (stat=%d)\n", (int)st->st_rdev);
-#if defined (__linux__)
-	/* this changes the major from 5 to 4 if it was a cua device */
-	if ( (int)st->st_rdev >= (TTYAUX_MAJOR*256)+64
-			&& (int)st->st_rdev <= (TTYAUX_MAJOR*256)+127 )
-		add = (TTY_MAJOR - TTYAUX_MAJOR)*256;
-#endif /* __linux__ */
 	/* lockfile of type /var/lock/LCK.004.064 */
 	l = sprintf( name, "%s/LCK.%03d.%03d", LOCK_PATH,
 		(int)MAJOR( add+st->st_rdev), (int)MINOR( add+st->st_rdev));
@@ -231,15 +221,18 @@ _dl_filename_1( name, st)
 
 /* for internal use */
 static inline int
-_dl_filename_2( name, dev)
-	char * name;
-	const char * dev;
+_dl_filename_2 (char       *name,
+		const char *dev)
 {
-	int l;
+	int l, i;
 	_debug( 3, "_dl_filename_2 (dev=%s)\n", dev);
 	/* lockfile of type /var/lock/LCK..ttyS2 */
 	l = sprintf( name, "%s/LCK..%s", LOCK_PATH, dev);
 	_debug( 2, "_dl_filename_2 () -> len=%d, name=%s<\n", l, name);
+	for (i=strlen(LOCK_PATH)+1; name[i] != '\0'; ++i) {
+		if (name[i] == '/')
+			name[i] = ':';
+	}
 	return l;
 }
 
@@ -249,8 +242,7 @@ _dl_filename_2( name, dev)
 
 /* handler for signals */
 static void
-_dl_sig_handler( sig)
-	int sig;
+_dl_sig_handler (int sig)
 {
 	signal( sig, _dl_sig_handler);
 	switch( sig ) {
@@ -276,8 +268,7 @@ static int oldmask= -1;
 
 /* for internal use */
 static int
-_dl_get_semaphore( flag)
-	int flag;
+_dl_get_semaphore (int flag)
 {
 	int flag2 = flag;
 
@@ -328,8 +319,7 @@ _dl_get_semaphore( flag)
 
 /* for internal use */
 static int
-_dl_unlock_semaphore( value)
-	int value;
+_dl_unlock_semaphore (int value)
 {
 	if ( semaphore != -1 ) {
 		_debug( 1, "_dl_unlock_semaphore(return=%d)=%d\n", value, semaphore);
@@ -346,14 +336,14 @@ _dl_unlock_semaphore( value)
 
 /* for internal use */
 static inline int
-_dl_lock_semaphore()
+_dl_lock_semaphore (void)
 {
 	return  _dl_get_semaphore( 0);
 }
 
 /* for internal use */
 static inline int
-_dl_block_semaphore()
+_dl_block_semaphore (void)
 {
 	return  _dl_get_semaphore( 3);
 }
@@ -363,8 +353,7 @@ static pid_t pid_read = 0; /* read also by dev_testlock */
 /* for internal use */
 /* zero means: we don't own the lock; maybe someone else */
 static pid_t
-_dl_check_lock( lockname)
-	const char * lockname;
+_dl_check_lock(const char *lockname)
 {
 	/* no check on lockname */
 	FILE *fd = 0;
@@ -465,8 +454,7 @@ _dl_check_lock( lockname)
 
 /* for internal use */
 static char *
-_dl_check_devname( devname)
-	const char * devname;
+_dl_check_devname (const char *devname)
 {
 	int l;
 	const char * p;
@@ -477,12 +465,20 @@ _dl_check_devname( devname)
 	 * maybe we should check it and do something if not?
 	 */
 	p = devname;	/* only a filename */
-	while ( (m=strrchr( p, '/')) != 0 ) {
-		p = m+1;	/* was pointing to the slash */
-		_debug( 3, "_dl_check_devname(%s) name = %s\n", devname, p);
-		if ( strcmp( p, "tty") == 0 ) 
-			p = ttyname( 0); /* this terminal, if it exists */
+	/* If the device is located under /dev/, strip off /dev. */
+	_debug( 3, "_dl_check_devname(%s) strip name = %s\n", devname, DEV_PATH);
+        if (strncmp(DEV_PATH, p, strlen(DEV_PATH)) == 0) {
+		p += 5;
+		_debug( 3, "_dl_check_devname(%s) stripped name = %s\n", devname, p);
+	} else {
+		/* Otherwise, strip off everything but the device name. */
+		while ( (m=strrchr( p, '/')) != 0 ) {
+			p = m+1;	/* was pointing to the slash */
+			_debug( 3, "_dl_check_devname(%s) name = %s\n", devname, p);
+		}
 	}
+	if ( strcmp( p, "tty") == 0 )
+		p = ttyname( 0); /* this terminal, if it exists */
 	if ( ((l=strlen( p)) == 0 ) || ( l > (MAXPATHLEN - strlen(LOCK_PATH)) ))
 	 	return 0;
 	if ( ! (m = malloc( 1 + l)) )
@@ -494,8 +490,7 @@ _dl_check_devname( devname)
 /* exported by the interface file lockdev.h */
 /* ZERO means that the device wasn't locked, but could have been locked later */
 pid_t
-dev_testlock( devname)
-	const char * devname;
+dev_testlock(const char *devname)
 {
 	const char * p;
 	char device[MAXPATHLEN+1];
@@ -565,8 +560,7 @@ dev_testlock( devname)
 
 /* exported by the interface file lockdev.h */
 pid_t
-dev_lock( devname)
-	const char * devname;
+dev_lock (const char *devname)
 {
 	const char * p;
 	char device[MAXPATHLEN+1];
@@ -722,9 +716,8 @@ dev_lock( devname)
 
 /* exported by the interface file lockdev.h */
 pid_t
-dev_relock( devname, old_pid)
-	const char * devname;
-	const pid_t old_pid;
+dev_relock (const char  *devname,
+	    const pid_t  old_pid)
 {
 	const char * p;
 	char device[MAXPATHLEN+1];
@@ -808,9 +801,8 @@ dev_relock( devname, old_pid)
 
 /* exported by the interface file lockdev.h */
 pid_t
-dev_unlock( devname, pid)
-	const char * devname;
-	const pid_t pid;
+dev_unlock (const char *devname,
+	    const pid_t pid)
 {
 	const char * p;
 	char device[MAXPATHLEN+1];
