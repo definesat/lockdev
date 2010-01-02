@@ -1,0 +1,23 @@
+#!/bin/sh -e
+
+if [ "$1" = "configure" -a "`echo $2 | sed -e 's/[.-]//g'`" -lt 1031 ]
+then
+  echo "" >&2
+  echo "WARNING" >&2
+  echo "Format of device lock files have changed, you will need to restart all" >&2
+  echo "programs that have locked device files using the old version of liblockdev." >&2
+  echo "" >&2
+  if ls /var/lock/LCK.[0-9]* 2>/dev/null
+  then
+    echo "Right now the following programs use old lockfiles:" >&2
+    echo "" >&2
+    ps -p `cat /var/lock/LCK.[0-9]*`
+    echo "" >&2
+    echo "Press ENTER to continue..." >&2
+    read foo
+  fi
+fi
+
+#DEBHELPER#
+
+exit 0

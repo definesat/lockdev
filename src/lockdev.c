@@ -88,7 +88,7 @@
  *	function).
  *
  *	Two functions and a global int are provided for debugging
- *	purposis: when compiling with -DDEBUG some printf are added in
+ *	purpose: when compiling with -DDEBUG some printf are added in
  *	the code to help debug the program. A verbosity value (1 by
  *	default) is stored in a global int that can be incremented
  *	calling liblockdev_incr_debug() and set to zero calling
@@ -97,7 +97,7 @@
  *	normal conditions checks, and 3 is to check all entries in a
  *	function.
  *	If the library is compiled without -DDEBUG, the global int is
- *	not used in any part, but the simbols still exists so it is
+ *	not used in any part, but the symbols still exist so it is
  *	possible to use them safely in your code.
  *
  */
@@ -211,9 +211,11 @@ _dl_filename_1 (char              *name,
 {
 	int l;
 	int add = 0;
-	_debug( 3, "_dl_filename_1 (stat=%d)\n", (int)st->st_rdev);
-	/* lockfile of type /var/lock/LCK.004.064 */
-	l = sprintf( name, "%s/LCK.%03d.%03d", LOCK_PATH,
+	_debug( 3, "_dl_filename_1 (mode=%d, stat=%d)\n",
+		(int)st->st_mode, (int)st->st_rdev);
+	/* lockfile of type /var/lock/LCK.C.004.064 */
+	l = sprintf( name, "%s/LCK.%c.%03d.%03d", LOCK_PATH,
+		S_ISCHR(st->st_mode) ? 'C' : S_ISBLK(st->st_mode) ? 'B' : 'X',
 		(int)MAJOR( add+st->st_rdev), (int)MINOR( add+st->st_rdev));
 	_debug( 2, "_dl_filename_1 () -> len=%d, name=%s<\n", l, name);
 	return l;

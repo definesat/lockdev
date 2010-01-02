@@ -1,7 +1,7 @@
 Source: lockdev
 Section: libs
 Priority: optional
-Maintainer: Pawel Wiecek <coven@debian.org>
+Maintainer: Paweł Więcek <coven@debian.org>
 Uploaders: Roger Leigh <rleigh@debian.org>
 Standards-Version: 3.6.2
 Build-Depends: perl (>= 5.8.0-7), debhelper (>= 4.0.0)

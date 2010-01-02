@@ -1,3 +1,12 @@
+lockdev (1.0.3-1) unstable; urgency=low
+
+  * New release
+  * Distinguish character and block devices when creating SVR4 type lockfiles
+    (closes: #331249)
+  * Fixed some typos in comments
+
+ -- Paweł Więcek <coven@debian.org>  Thu, 20 Apr 2006 21:11:48 +0200
+
 lockdev (1.0.2-1) unstable; urgency=low
 
   * New release.
