@@ -43,11 +43,15 @@ extern "C" {
 #endif
 
 #include <sys/types.h>
+#include <errno.h>
 
 /* API of the library */
 
 void liblockdev_incr_debug (void);
 void liblockdev_reset_debug (void);
+
+pid_t dev_getpid (void);
+pid_t dev_setpid (pid_t pid);
 
 pid_t dev_testlock (const char *devname);
 

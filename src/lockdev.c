@@ -177,6 +177,19 @@ liblockdev_reset_debug (void)
 	liblockdev_debug = 0;
 }
 
+static pid_t dev_pid = 0;
+
+pid_t dev_getpid(void)
+{
+    return (dev_pid ? dev_pid : getpid());
+}
+
+pid_t dev_setpid(pid_t newpid)
+{
+    pid_t oldpid = dev_pid;
+    dev_pid = newpid;
+    return oldpid;
+}
 
 /*
  * for internal use *
@@ -423,7 +436,7 @@ _dl_check_lock(const char *lockname)
 		 * maybe also this sprintf should be added to the
 		 * conditional part, as the others
 		 */
-		sprintf( tpname, "%s/.%d", LOCK_PATH, (int)getpid());
+		sprintf( tpname, "%s/.%d", LOCK_PATH, (int)dev_getpid());
 		unlink( tpname);	/* in case there was */
 		rename( lockname, tpname);
 		if ( ! (fd=fopen( tpname, "r")) ) {
@@ -520,7 +533,7 @@ dev_testlock(const char *devname)
 	 * and minor numbers
 	 */
 	if ( stat( device, &statbuf) == -1 ) {
-		close_n_return( -1);
+		close_n_return(-errno);
 	}
 
 	/* first check for the FSSTND-1.2 lock, get the pid of the
@@ -585,7 +598,7 @@ dev_lock (const char *devname)
 #endif /* DEBUG */
 	_debug( 3, "dev_lock(%s)\n", devname);
 	if (oldmask == -1 )
-		oldmask = umask( 0);	/* give full permissions to files created */
+		oldmask = umask( 002);	/* apply o-w to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
 	 	close_n_return( -1);
 	strcpy( device, DEV_PATH);
@@ -596,11 +609,14 @@ dev_lock (const char *devname)
 	 * and minor numbers
 	 */
 	if ( stat( device, &statbuf) == -1 ) {
-		close_n_return( -1);
+		close_n_return(-errno);
+	}
+	if ( access( device, W_OK ) == -1 ) {
+		close_n_return(-errno);
 	}
 
 	/* now get our own pid */
-	our_pid = getpid();
+	our_pid = dev_getpid();
 	_debug( 2, "dev_lock() our own pid = %d\n", (int)our_pid);
 
 	/* We will use this algorithm:
@@ -641,8 +657,9 @@ dev_lock (const char *devname)
 	_dl_filename_1( lock1, &statbuf);
 	while ( ! (pid=_dl_check_lock( lock1)) ) {
 		if (( link( lock0, lock1) == -1 ) && ( errno != EEXIST )) {
+			int rc = -errno;
 			unlink( lock0);
-			close_n_return( -1);
+			close_n_return(rc);
 		}
 	}
 	if ( pid != our_pid ) {
@@ -659,9 +676,10 @@ dev_lock (const char *devname)
 	/* lockfile of type /var/lock/LCK..ttyS2 */
 	while ( ! (pid=_dl_check_lock( lock2)) ) {
 		if (( link( lock0, lock2) == -1 ) && ( errno != EEXIST )) {
+			int rc = -errno;
 			unlink( lock0);
 			unlink( lock1);
-			close_n_return( -1);
+			close_n_return(rc);
 		}
 	}
 	if ( pid != our_pid ) {
@@ -740,7 +758,7 @@ dev_relock (const char  *devname,
 #endif /* DEBUG */
 	_debug( 3, "dev_relock(%s, %d)\n", devname, (int)old_pid);
 	if (oldmask == -1 )
-		oldmask = umask( 0);	/* give full permissions to files created */
+		oldmask = umask( 002);	/* apply o-w to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
 	 	close_n_return( -1);
 	strcpy( device, DEV_PATH);
@@ -751,11 +769,14 @@ dev_relock (const char  *devname,
 	 * and minor numbers
 	 */
 	if ( stat( device, &statbuf) == -1 ) {
-		close_n_return( -1);
+		close_n_return(-errno);
+	}
+	if ( access( device, W_OK ) == -1 ) {
+		close_n_return(-errno);
 	}
 
 	/* now get our own pid */
-	our_pid = getpid();
+	our_pid = dev_getpid();
 	_debug( 2, "dev_relock() our own pid = %d\n", (int)our_pid);
 
 	/* first check for the FSSTND-1.2 lock, get the pid of the
@@ -825,7 +846,7 @@ dev_unlock (const char *devname,
 #endif /* DEBUG */
 	_debug( 3, "dev_unlock(%s, %d)\n", devname, (int)pid);
 	if (oldmask == -1 )
-		oldmask = umask( 0);	/* give full permissions to files created */
+		oldmask = umask( 002);	/* apply o-w to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
 	 	close_n_return( -1);
 	strcpy( device, DEV_PATH);
@@ -836,7 +857,10 @@ dev_unlock (const char *devname,
 	 * and minor numbers
 	 */
 	if ( stat( device, &statbuf) == -1 ) {
-		close_n_return( -1);
+		close_n_return(-errno);
+	}
+	if ( access( device, W_OK ) == -1 ) {
+		close_n_return(-errno);
 	}
 
 	/* first remove the FSSTND-1.2 lock, get the pid of the
