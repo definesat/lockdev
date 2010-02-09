@@ -71,7 +71,9 @@ install_profile:	${static} ${shared}
 
 install_doc:	docs/lockdev.3
 	install -m755 -d	${mandir}/man3
+	install -m755 -d	${mandir}/man8
 	install -m644 docs/lockdev.3	${mandir}/man3
+	install -m644 docs/lockdev.8	${mandir}/man8
 
 install_run:	${shared}
 	install -m755 -d	${libdir}
