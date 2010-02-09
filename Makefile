@@ -7,8 +7,8 @@ objs	= src/lockdev.o
 
 lockdev	= src/sample.c
 
-VER	= $(shell expr `pwd` : '.*-\([0-9.]*\)')
-MVER	= ${shell expr `pwd` : '.*-\([0-9]*\).[0-9]*'}
+VER	= 1.0.3
+MVER	= 1
 
 static	= ${libname}.a
 shared	= ${libname}.so.${VER}
@@ -24,8 +24,8 @@ incdir	= ${basedir}/include
 mandir	= ${basedir}/share/man
 
 CC	= gcc
-CFLAGS	= -g -O2 -Wall -pipe
-LCFLAGS	= ${CFLAGS} -fPIC -D_REENTRANT
+CFLAGS	= -g -O2 -Wall -pipe -fPIC 
+LCFLAGS	= ${CFLAGS} -D_REENTRANT
 LDLIBS	= -llockdev
 
 .PHONY: shared static perl-lib

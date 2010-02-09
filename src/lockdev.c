@@ -141,7 +141,9 @@
 static inline	int	_dl_filename_0	( char * name, const pid_t pid);
 static inline	int	_dl_filename_1	( char * name, const struct stat * st);
 static inline	int	_dl_filename_2	( char * name, const char * dev);
+#if DEBUG
 static		void	_dl_sig_handler	( int sig);
+#endif
 static		int	_dl_get_semaphore	( int flag);
 static		int	_dl_unlock_semaphore	( int value);
 static inline	int	_dl_lock_semaphore	( void);
@@ -255,24 +257,24 @@ _dl_filename_2 (char       *name,
 #  error "lock filename build missing"
 #endif
 
+#if DEBUG
 /* handler for signals */
 static void
 _dl_sig_handler (int sig)
 {
 	signal( sig, _dl_sig_handler);
 	switch( sig ) {
-#if DEBUG
 	case SIGUSR1:
 		liblockdev_debug++;
 		break;
 	case SIGUSR2:
 		liblockdev_debug = 0;
 		break;
-#endif
 	default:
 		break;
 	}
 }
+#endif
 
 /* holds the file descriptor of the lock between the various *_semaphore function calls.
  * its positive conten doesn't tells that we lock the file.
