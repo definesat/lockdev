@@ -15,13 +15,13 @@ shared	= ${libname}.so.${VER}
 soname	= ${libname}.so.${MVER}
 
 # overwritten by caller (e.g.: debian/rules)
-basedir	= /usr/local
+prefix	= /usr/local
 srcdir=.
 
-sbindir	= ${basedir}/sbin
-libdir	= ${basedir}/lib
-incdir	= ${basedir}/include
-mandir	= ${basedir}/share/man
+sbindir	= ${DESTDIR}${prefix}/sbin
+libdir	= ${DESTDIR}${prefix}/lib
+incdir	= ${DESTDIR}${prefix}/include
+mandir	= ${DESTDIR}${prefix}/share/man
 
 CC	= gcc
 CFLAGS	= -g -O2 -Wall -pipe -fPIC 
