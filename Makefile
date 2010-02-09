@@ -11,7 +11,7 @@ VER	= $(shell expr `pwd` : '.*-\([0-9.]*\)')
 MVER	= ${shell expr `pwd` : '.*-\([0-9]*\).[0-9]*'}
 
 static	= ${libname}.a
-shared	= ${libname}.${VER}.so
+shared	= ${libname}.so.${VER}
 soname	= ${libname}.so.${MVER}
 
 # overwritten by caller (e.g.: debian/rules)
@@ -76,6 +76,7 @@ install_doc:	docs/lockdev.3
 install_run:	${shared}
 	install -m755 -d	${libdir}
 	install -m755 ${shared}	${libdir}
+	ln -s ${shared}		${libdir}/liblockdev.so
 	install -m755 -d	${sbindir}
 	install -m755 lockdev	${sbindir}
 
