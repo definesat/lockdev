@@ -123,14 +123,8 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#if defined (__GNU_LIBRARY__)
-# include <sys/sysmacros.h>
-# define MAJOR(dev) gnu_dev_major (dev)
-# define MINOR(dev) gnu_dev_minor (dev)
-#else
-#  error "put here a define for MAJOR and MINOR"
-#endif
-
+#define _BSD_SOURCE
+#include <sys/types.h>
 #include "lockdev.h"
 
 /*
@@ -225,13 +219,17 @@ _dl_filename_1 (char              *name,
 		const struct stat *st)
 {
 	int l;
-	int add = 0;
-	_debug( 3, "_dl_filename_1 (mode=%d, stat=%d)\n",
-		(int)st->st_mode, (int)st->st_rdev);
-	/* lockfile of type /var/lock/LCK.C.004.064 */
-	l = sprintf( name, "%s/LCK.%c.%03d.%03d", LOCK_PATH,
-		S_ISCHR(st->st_mode) ? 'C' : S_ISBLK(st->st_mode) ? 'B' : 'X',
-		(int)MAJOR( add+st->st_rdev), (int)MINOR( add+st->st_rdev));
+	_debug( 3, "_dl_filename_1 (dev=%lx, rdev=%lx)\n",
+		(unsigned long)st->st_dev, (unsigned long)st->st_rdev);
+	/* lockfile of type /var/lock/LK.003.004.064 */
+	if(S_ISCHR(st->st_mode)) {
+		l = sprintf( name, "%s/LK.%03u.%03u.%03u", LOCK_PATH,
+			major(st->st_dev), major(st->st_rdev), minor(st->st_rdev));
+	} else {
+		/* no character device. There's no standard for that */
+		l = sprintf( name, "%s/LK.x%03u.%03u.%03u", LOCK_PATH,
+			(unsigned)(st->st_mode&S_IFMT)>>12, major(st->st_rdev), minor(st->st_rdev));
+	}
 	_debug( 2, "_dl_filename_1 () -> len=%d, name=%s<\n", l, name);
 	return l;
 }
@@ -574,7 +572,6 @@ dev_testlock(const char *devname)
 	 * another program uses the FSSTND lock without the new one than
 	 * the contrary; anyway we do both tests.
 	 */
-	/* lockfile of type /var/lock/LCK.004.064 */
 	_dl_filename_1( lock, &statbuf);
 	if ( (pid=_dl_check_lock( lock)) )
 		close_n_return( pid);
@@ -667,7 +664,6 @@ dev_lock (const char *devname)
 	/* test the lock and try to lock; repeat untill an error or a
 	 * lock happens
 	 */
-	/* lockfile of type /var/lock/LCK.004.064 */
 	_dl_filename_1( lock1, &statbuf);
 	while ( ! (pid=_dl_check_lock( lock1)) ) {
 		if (( link( lock0, lock1) == -1 ) && ( errno != EEXIST )) {
@@ -803,7 +799,6 @@ dev_relock (const char  *devname,
 	if ( pid && old_pid && pid != old_pid )
 		close_n_return( pid);	/* error or locked by someone else */
 
-	/* lockfile of type /var/lock/LCK.004.064 */
 	_dl_filename_1( lock1, &statbuf);
 	pid = _dl_check_lock( lock1);
 	if ( pid && old_pid && pid != old_pid )
@@ -887,7 +882,6 @@ dev_unlock (const char *devname,
 	if ( pid && wpid && pid != wpid )
 		close_n_return( wpid);	/* error or locked by someone else */
 
-	/* lockfile of type /var/lock/LCK.004.064 */
 	_dl_filename_1( lock1, &statbuf);
 	wpid = _dl_check_lock( lock1);
 	if ( pid && wpid && pid != wpid )
