@@ -32,6 +32,8 @@ main (int   argc,
 		}
 		else dev = p;
 	}
+	if (dev == NULL)
+	    usage();
 	i = 0;
 	(void) dev_setpid(getppid());
 	switch( ch ) {
