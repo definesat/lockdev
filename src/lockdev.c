@@ -939,7 +939,6 @@ static int _spawn_helper(const char * argv[])
 {
     pid_t child;
     int status;
-    void (*osig) (int) = signal(SIGCHLD, SIG_DFL);
     int rc;
 
     if (!(child = fork())) {
@@ -958,7 +957,6 @@ static int _spawn_helper(const char * argv[])
     }
 
     rc = (int) waitpid(child, &status, 0);
-    signal(SIGCHLD, osig);
     if (rc == child && WIFEXITED(status)) {
 	/*
 	 * Exit		dev_lock	dev_unlock	dev_testlock
