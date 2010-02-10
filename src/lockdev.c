@@ -123,9 +123,12 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#define _BSD_SOURCE
 #include <sys/types.h>
+#include <sys/wait.h>
 #include "lockdev.h"
+#include "ttylock.h"
+#define _LIBLOCKDEV_NO_BAUDBOY_DEFINES
+#include "baudboy.h"
 
 /*
  *	PROTOTYPES for internal functions
@@ -900,3 +903,133 @@ dev_unlock (const char *devname,
 	close_n_return( 0);	/* successfully unlocked */
 }
 
+
+int
+ttylock(const char *devname)
+{
+	/* should set errno ? */
+	return dev_lock( devname) == 0 ? 0 : -1;
+}
+
+int
+ttyunlock (const char *devname)
+{
+	return dev_unlock(devname, 0);
+}
+
+int
+ttylocked(const char *devname)
+{
+	return dev_testlock( devname) == 0 ? 0 : -1;
+}
+
+int
+ttywait (const char *devname)
+{
+
+	int rc;
+	while((rc = ttylocked(devname)) == 0)
+		sleep(1);
+	return rc;
+}
+
+#define	LOCKDEV_PATH	"/usr/sbin/lockdev"
+
+static int _spawn_helper(const char * argv[])
+{
+    pid_t child;
+    int status;
+    void (*osig) (int) = signal(SIGCHLD, SIG_DFL);
+    int rc;
+
+    if (!(child = fork())) {
+	int fd;
+        /* these have to be open to something */
+	if ((fd = open("/dev/null", 2)) < 0)
+	    exit(-1);
+	dup2(fd, 0);
+	dup2(fd, 1);
+	dup2(fd, 2);
+	close(fd);
+	/* Swap egid and gid for lockdev's access(2) device check. */
+	setregid(getegid(), getgid());
+	execv(argv[0], (char *const *)argv);
+	exit(-1);
+    }
+
+    rc = (int) waitpid(child, &status, 0);
+    signal(SIGCHLD, osig);
+    if (rc == child && WIFEXITED(status)) {
+	/*
+	 * Exit		dev_lock	dev_unlock	dev_testlock
+	 *	  0	OK		OK		not locked
+	 *	  1	locked other	locked other	locked
+	 *	  2	EACCES
+	 *	  3	EROFS
+	 *	  4	EFAULT
+	 *	  5	EINVAL
+	 *	  6	ENAMETOOLONG
+	 *	  7	ENOENT
+	 *	  8	ENOTDIR
+	 *	  9	ENOMEM
+	 *	 10	ELOOP
+	 *	 11	EIO
+	 *	255	error		error		error
+	 */
+	rc = WEXITSTATUS(status);
+	switch(rc) {
+	case  0:	rc = 0;		break;
+	default:
+	case  1:	rc = -EPERM;	break;
+	case  2:	rc = -EACCES;	break;
+	case  3:	rc = -EROFS;	break;
+	case  4:	rc = -EFAULT;	break;
+	case  5:	rc = -EINVAL;	break;
+	case  6:	rc = -ENAMETOOLONG;	break;
+	case  7:	rc = -ENOENT;	break;
+	case  8:	rc = -ENOTDIR;	break;
+	case  9:	rc = -ENOMEM;	break;
+	case 10:	rc = -ELOOP;	break;
+	case 11:	rc = -EIO;	break;
+	}
+    } else if (rc == -1)
+	rc = -errno;
+    else
+	rc = -ECHILD;
+
+    return rc;
+
+}
+
+int
+ttylock_helper(const char * devname)
+{
+    const char * argv[] = { LOCKDEV_PATH, "-l", NULL, NULL};
+    argv[2] = devname;
+    return _spawn_helper(argv);
+}
+
+int
+ttyunlock_helper(const char * devname)
+{
+    const char * argv[] = { LOCKDEV_PATH, "-u", NULL, NULL};
+    argv[2] = devname;
+    return _spawn_helper(argv);
+}
+
+int
+ttylocked_helper(const char * devname)
+{
+    const char * argv[] = { LOCKDEV_PATH, NULL, NULL};
+    argv[1] = devname;
+    return _spawn_helper(argv);
+}
+
+int
+ttywait_helper(const char * devname)
+{
+    int rc;
+    while((rc = ttylocked_helper(devname)) == 0)
+	sleep(1);
+    return rc;
+}

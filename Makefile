@@ -27,6 +27,7 @@ CC	= gcc
 CFLAGS	= -g -O2 -Wall -pipe -fPIC 
 LCFLAGS	= ${CFLAGS} -D_REENTRANT
 LDLIBS	= -llockdev
+CPPFLAGS = -I$(srcdir)/src
 
 .PHONY: shared static perl-lib
 ALL:	shared static lockdev perl-lib
@@ -38,7 +39,7 @@ shared ${shared}:	${objs}
 	${CC} ${LCFLAGS} -shared -Wl,-soname,${soname} $^ -lc -o ${shared}
 
 lockdev.o: ${lockdev}
-	${CC} ${CFLAGS} -I./src -o $@ -c $^
+	${CC} ${CFLAGS} ${CPPFLAGS} -o $@ -c $^
 
 lockdev: lockdev.o ${static}
 	${CC} -o $@ $^
