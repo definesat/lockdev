@@ -28,6 +28,9 @@ CFLAGS	= -g -O2 -Wall -pipe -fPIC
 LCFLAGS	= ${CFLAGS} -D_REENTRANT
 LDLIBS	= -llockdev
 CPPFLAGS = -I$(srcdir)/src
+ifneq (${DEBUG},)
+CPPFLAGS += -DDEBUG=${DEBUG}
+endif
 
 .PHONY: shared static perl-lib
 ALL:	shared static lockdev perl-lib
