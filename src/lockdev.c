@@ -539,7 +539,7 @@ dev_testlock(const char *devname)
 #endif /* DEBUG */
 	_debug( 3, "dev_testlock(%s)\n", devname);
 	if ( ! (p=_dl_check_devname( devname)) )
-	 	close_n_return( -1);
+	 	close_n_return(-EINVAL);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
 	_debug( 2, "dev_testlock() device = %s\n", device);
@@ -614,7 +614,7 @@ dev_lock (const char *devname)
 	if (oldmask == -1 )
 		oldmask = umask( 002);	/* apply o-w to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
-	 	close_n_return( -1);
+	 	close_n_return(-EINVAL);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
 	_debug( 2, "dev_lock() device = %s\n", device);
@@ -643,7 +643,7 @@ dev_lock (const char *devname)
 	/* file of type /var/lock/LCK..<pid> */
 	_dl_filename_0( lock0, our_pid);
 	if ( ! (fd=fopen( lock0, "w")) )
-		close_n_return( -1);	/* no file, no lock */
+		close_n_return( -errno);	/* no file, no lock */
 	fprintf( fd, "%10d\n", (int)our_pid);
 	fclose( fd);
 
@@ -741,7 +741,7 @@ dev_lock (const char *devname)
 		_debug( 1, "dev_lock() process %d owns file %s\n", (int)pid, lock1);
 		_debug( 1, "dev_lock() process %d owns file %s\n", (int)pid2, lock2);
 		_debug( 1, "dev_lock() process %d (we) have no lock!\n", (int)our_pid);
-		close_n_return( -1);
+		close_n_return(pid);
 	}
 	close_n_return( (pid + pid2));
 }
@@ -773,7 +773,7 @@ dev_relock (const char  *devname,
 	if (oldmask == -1 )
 		oldmask = umask( 002);	/* apply o-w to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
-	 	close_n_return( -1);
+	 	close_n_return(-EPERM);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
 	_debug( 2, "dev_relock() device = %s\n", device);
@@ -816,7 +816,7 @@ dev_relock (const char  *devname,
 	 * we own all the lockfiles
 	 */
 	if ( ! (fd=fopen( lock1, "w")) )
-		close_n_return( -1);	/* something strange */
+		close_n_return( -errno);	/* something strange */
 	fprintf( fd, "%10d\n", (int)our_pid);
 	fclose( fd);
 	/* under normal conditions, this second file is a hardlink of
@@ -825,7 +825,7 @@ dev_relock (const char  *devname,
 	 */
 	if ( ! (fd=fopen( lock2, "w")) )
 		/* potentially a problem */
-		close_n_return( -1);	/* something strange */
+		close_n_return( -errno);	/* something strange */
 	fprintf( fd, "%10d\n", (int)our_pid);
 	fclose( fd);
 
@@ -860,7 +860,7 @@ dev_unlock (const char *devname,
 	if (oldmask == -1 )
 		oldmask = umask( 002);	/* apply o-w to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
-	 	close_n_return( -1);
+	 	close_n_return( -errno);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
 	_debug( 2, "dev_unlock() device = %s\n", device);
@@ -972,13 +972,14 @@ static int _spawn_helper(const char * argv[])
 	 *	  9	ENOMEM
 	 *	 10	ELOOP
 	 *	 11	EIO
+	 *	 12	EPERM
 	 *	255	error		error		error
 	 */
 	rc = WEXITSTATUS(status);
 	switch(rc) {
-	case  0:	rc = 0;		break;
+	case  0:
+	case  1:	break;
 	default:
-	case  1:	rc = -EPERM;	break;
 	case  2:	rc = -EACCES;	break;
 	case  3:	rc = -EROFS;	break;
 	case  4:	rc = -EFAULT;	break;
@@ -989,6 +990,7 @@ static int _spawn_helper(const char * argv[])
 	case  9:	rc = -ENOMEM;	break;
 	case 10:	rc = -ELOOP;	break;
 	case 11:	rc = -EIO;	break;
+	case 12:	rc = -EPERM;	break;
 	}
     } else if (rc == -1)
 	rc = -errno;

@@ -82,7 +82,7 @@ install_doc:	docs/lockdev.3
 install_run:	${shared}
 	install -m755 -d	${libdir}
 	install -m755 ${shared}	${libdir}
-	ln -s ${shared}		${libdir}/liblockdev.so
+	ln -fs ${shared}		${libdir}/liblockdev.so
 	install -m755 -d	${sbindir}
 	install -m755 lockdev	${sbindir}
 

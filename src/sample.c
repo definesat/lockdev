@@ -65,6 +65,7 @@ main (int   argc,
 	 *	  9	ENOMEM
 	 *	 10	ELOOP
 	 *	 11	EIO
+	 *	 12	EPERM
 	 *	255	error		error		error
 	 */
 	switch (i) {
@@ -78,6 +79,7 @@ main (int   argc,
 	case -ENOMEM:	i = 9;	break;
 	case -ELOOP:	i = 10;	break;
 	case -EIO:	i = 11;	break;
+	case -EPERM:	i = 12;	break;
 	default:
 	    if (i < 0) i = 255;
 	    else if (i > 0) 	i = 1;
