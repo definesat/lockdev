@@ -28,7 +28,7 @@ accessable by more than one group of users).
 The lock file names are typically in the form
 .B LCK..ttyS1
 and 
-.B LCK.004.065 ,
+.B LK.000.004.065 ,
 but is provided a way to easily modify them to use the library on
 different architectures. The content of those files is the pid of the
 process who owns the lock.
@@ -139,7 +139,7 @@ debugging options (and the -DDEBUG flag) into /usr/lib/debug .
 .SH FILES
 /var/lock/LCK..<device>
 .br
-/var/lock/LCK.<major>.<minor>
+/var/lock/LK.<devmajor>.<major>.<minor>
 .br
 /usr/lib/liblockdev.so.1
 .br
