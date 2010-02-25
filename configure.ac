@@ -31,5 +31,6 @@ AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 	docs/Makefile
+	lockdev.pc
 ])
 AC_OUTPUT
