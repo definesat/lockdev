@@ -5,7 +5,9 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AC_PREREQ(2.53)
 AC_CANONICAL_HOST
-AM_INIT_AUTOMAKE([1.6 foreign no-dist-gzip dist-bzip2 silent-rules -Wall])
+AM_INIT_AUTOMAKE([1.6 foreign no-dist-gzip dist-bzip2 -Wall])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])],
+	[AC_SUBST([AM_DEFAULT_VERBOSITY], [1])])
 
 dnl Checks for programs.
 AC_PROG_CC

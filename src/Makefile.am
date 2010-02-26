@@ -3,6 +3,8 @@ noinst_PROGRAMS = baudboy
 
 include_HEADERS = lockdev.h baudboy.h ttylock.h
 
+AM_CPPFLAGS = -include $(top_builddir)/config.h
+
 lockdev_SOURCES = sample.c
 lockdev_LDADD = liblockdev.la
 
