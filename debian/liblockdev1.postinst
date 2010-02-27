@@ -20,3 +20,25 @@ fi
 #DEBHELPER#
 
 exit 0
+#!/bin/sh -e
+
+if [ "$1" = "configure" ] && dpkg --compare-versions "$2" lt-nl 1.0.3-1;
+then
+  echo
+  echo "WARNING"
+  echo "Format of device lock files have changed, you will need to restart all"
+  echo "programs that have locked device files using the old version of liblockdev."
+  echo
+
+  if ls /var/lock/LCK.[0-9]* 2>/dev/null
+  then
+    echo "Right now the following programs use old lockfiles:"
+    echo
+    ps -p `cat /var/lock/LCK.[0-9]*`
+    echo
+  fi
+fi
+
+#DEBHELPER#
+
+exit 0

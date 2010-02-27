@@ -9,6 +9,61 @@ Build-Depends: perl (>= 5.8.0-7), debhelper (>= 4.0.0)
 Package: liblockdev1
 Section: libs
 Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Run-time shared library for locking devices
+ It provides a reliable way to put an exclusive lock to
+ devices using _both_ FSSTND and SVr4 methods.
+
+Package: liblockdev1-dev
+Section: libdevel
+Architecture: any
+Depends: liblockdev1 (= ${Source-Version}), libc6-dev, ${misc:Depends}
+Conflicts: liblockdev0-dev, liblockdev0g-dev
+Replaces: liblockdev0-dev, liblockdev0g-dev
+Description: Development library for locking devices
+ It provides a reliable way to put an exclusive lock to
+ devices using _both_ FSSTND and SVr4 methods.
+ .
+ Includes header files and static lib.
+
+Package: liblockdev1-dbg
+Section: debug
+Priority: extra
+Architecture: any
+Depends: liblockdev1 (= ${Source-Version}), liblockdev1-dev (= ${Source-Version}), ${shlibs:Depends}, ${misc:Depends}
+Conflicts: liblockdev0-dbg, liblockdev0g-dbg
+Replaces: liblockdev0-dbg, liblockdev0g-dbg
+Description: Debugging library for locking devices
+ It provides a reliable way to put an exclusive lock to
+ devices using _both_ FSSTND and SVr4 methods.
+ .
+ Includes static and shared debugging and profiling libs,
+ as well as the sources ready for use by gdb.
+
+Package: liblockdev1-perl
+Section: perl
+Architecture: any
+Depends: ${perl:Depends}, ${shlibs:Depends}, ${misc:Depends}
+Conflicts: liblockdev0-perl
+Replaces:  liblockdev0-perl
+Description: perl extension library for locking devices
+ It provides a reliable way to put an exclusive lock to
+ devices using _both_ FSSTND and SVr4 methods.
+ .
+ Includes a shared lib loadable by perl 5 (use LockDev),
+ the module LockDev.pm and its manpage LockDev(3pm) .
+
+Source: lockdev
+Section: libs
+Priority: optional
+Maintainer: Paweł Więcek <coven@debian.org>
+Uploaders: Roger Leigh <rleigh@debian.org>
+Standards-Version: 3.6.2
+Build-Depends: perl (>= 5.8.0-7), debhelper (>= 4.0.0)
+
+Package: liblockdev1
+Section: libs
+Architecture: any
 Depends: ${shlibs:Depends}
 Description: Run-time shared library for locking devices
  It provides a reliable way to put an exclusive lock to
