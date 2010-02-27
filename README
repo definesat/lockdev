@@ -1,0 +1,29 @@
+lockdev
+=======
+
+Manage character and block device lockfiles.
+
+
+Build Dependencies
+------------------
+
+An ISO C90 compiler
+Perl 5.8.0 or later
+
+If building from GIT, you will also need:
+
+autoconf
+automake
+libtool
+
+
+Building and installation
+-------------------------
+
+Please see the INSTALL file for generic installation instructions.
+
+
+Usage
+-----
+
+See lockdev(3).
