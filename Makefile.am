@@ -16,6 +16,5 @@ dist-hook:
 
 EXTRA_DIST =		\
 	ChangeLog.old	\
-	LICENSE		\
 	SHLIBS		\
 	VERSION
