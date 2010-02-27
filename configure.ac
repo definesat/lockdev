@@ -1,13 +1,36 @@
-AC_INIT([lockdev],[1.0.3],[lockdev-devel@lists.alioth.debian.org])
+m4_define([lockdev_m4_chomp],
+[m4_format([[%.*s]], m4_bregexp(m4_translit([$1], [
+]]m4_dquote(_m4_defn([m4_cr_all]))[, [/]]m4_format([%255s], [])[),
+  [/*$]), [$1])])
+m4_define([lockdev_m4_esyscmd_s],
+[lockdev_m4_chomp(m4_esyscmd([$1]))])
+dnl Quoting the first argument results in a bizarrely corrupted package tarname
+AC_INIT(lockdev_m4_esyscmd_s([sed -ne '/^Package:/{s/Package:[[:space:]][[:space:]]*//p;q}' VERSION]),
+        [lockdev_m4_esyscmd_s([sed -ne '/^Version:/{s/Version:[[:space:]][[:space:]]*//p;q}' VERSION])],
+        [lockdev-devel@lists.alioth.debian.org])
 AC_CONFIG_SRCDIR([src/lockdev.c])
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_AUX_DIR([scripts])
+AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_PREREQ(2.53)
 AC_CANONICAL_HOST
-AM_INIT_AUTOMAKE([1.6 foreign no-dist-gzip dist-bzip2 -Wall])
+
+. "${srcdir}/SHLIBS"
+AC_SUBST([LOCKDEV_CURRENT_INTERFACE])
+AC_SUBST([LOCKDEV_INTERFACE_AGE])
+AC_SUBST([LOCKDEV_BINARY_AGE])
+
+AM_INIT_AUTOMAKE([1.6 gnu no-dist-gzip dist-bzip2 -Wall])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])],
 	[AC_SUBST([AM_DEFAULT_VERBOSITY], [1])])
+
+RELEASE_DATE='lockdev_m4_esyscmd_s(date --date='lockdev_m4_esyscmd_s([sed -ne '/^Release-Date:/{s/Release-Date:[[:space:]][[:space:]]*//p;q}' VERSION])' '+%s')'
+RELEASE_DATE_S='lockdev_m4_esyscmd_s([sed -ne '/^Release-Date:/{s/Release-Date:[[:space:]][[:space:]]*//p;q}' VERSION])'
+AC_DEFINE_UNQUOTED([RELEASE_DATE_S], ["$RELEASE_DATE_S"], [Package release date (string).])
+AC_DEFINE_UNQUOTED([RELEASE_DATE], [$RELEASE_DATE], [Package release date (integer).])
+AC_SUBST([RELEASE_DATE])
+AC_SUBST([RELEASE_DATE_S])
 
 dnl Checks for programs.
 AC_PROG_CC
