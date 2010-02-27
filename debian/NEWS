@@ -14,3 +14,11 @@ lockdev (1.0.3-1.1) unstable; urgency=low
   liblockdev needs to be restarted.
 
  -- Andreas Barth <aba@not.so.argh.org>  Mon, 27 Nov 2006 13:13:37 +0100
+lockdev (1.0.3-1.1) unstable; urgency=low
+
+  The format of device lock files has changed.
+
+  All programs that have locked device files using the old version of
+  liblockdev needs to be restarted.
+
+ -- Andreas Barth <aba@not.so.argh.org>  Mon, 27 Nov 2006 13:13:37 +0100
