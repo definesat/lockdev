@@ -123,15 +123,12 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#if defined (__GNU_LIBRARY__)
-# include <sys/sysmacros.h>
-# define MAJOR(dev) gnu_dev_major (dev)
-# define MINOR(dev) gnu_dev_minor (dev)
-#else
-#  error "put here a define for MAJOR and MINOR"
-#endif
-
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "lockdev.h"
+#include "ttylock.h"
+#define _LIBLOCKDEV_NO_BAUDBOY_DEFINES
+#include "baudboy.h"
 
 /*
  *	PROTOTYPES for internal functions
@@ -141,14 +138,16 @@
 static inline	int	_dl_filename_0	( char * name, const pid_t pid);
 static inline	int	_dl_filename_1	( char * name, const struct stat * st);
 static inline	int	_dl_filename_2	( char * name, const char * dev);
+#if DEBUG
 static		void	_dl_sig_handler	( int sig);
+#endif
 static		int	_dl_get_semaphore	( int flag);
 static		int	_dl_unlock_semaphore	( int value);
 static inline	int	_dl_lock_semaphore	( void);
 static inline	int	_dl_block_semaphore	( void);
 static		pid_t	_dl_check_lock	( const char * lockname);
 static		char *	_dl_check_devname	( const char * devname);
-
+static inline	int	_dl_pid_exists		( pid_t pid );
 
 #define	SEMAPHORE	"LOCKDEV"
 #define	close_n_return( v)	return( _dl_unlock_semaphore( v))
@@ -177,6 +176,19 @@ liblockdev_reset_debug (void)
 	liblockdev_debug = 0;
 }
 
+static pid_t dev_pid = 0;
+
+pid_t dev_getpid(void)
+{
+    return (dev_pid ? dev_pid : getpid());
+}
+
+pid_t dev_setpid(pid_t newpid)
+{
+    pid_t oldpid = dev_pid;
+    dev_pid = newpid;
+    return oldpid;
+}
 
 /*
  * for internal use *
@@ -210,13 +222,17 @@ _dl_filename_1 (char              *name,
 		const struct stat *st)
 {
 	int l;
-	int add = 0;
-	_debug( 3, "_dl_filename_1 (mode=%d, stat=%d)\n",
-		(int)st->st_mode, (int)st->st_rdev);
-	/* lockfile of type /var/lock/LCK.C.004.064 */
-	l = sprintf( name, "%s/LCK.%c.%03d.%03d", LOCK_PATH,
-		S_ISCHR(st->st_mode) ? 'C' : S_ISBLK(st->st_mode) ? 'B' : 'X',
-		(int)MAJOR( add+st->st_rdev), (int)MINOR( add+st->st_rdev));
+	_debug( 3, "_dl_filename_1 (dev=%lx, rdev=%lx)\n",
+		(unsigned long)st->st_dev, (unsigned long)st->st_rdev);
+	/* lockfile of type /var/lock/LK.003.004.064 */
+	if(S_ISCHR(st->st_mode)) {
+		l = sprintf( name, "%s/LK.%03u.%03u.%03u", LOCK_PATH,
+			major(st->st_dev), major(st->st_rdev), minor(st->st_rdev));
+	} else {
+		/* no character device. There's no standard for that */
+		l = sprintf( name, "%s/LK.x%03u.%03u.%03u", LOCK_PATH,
+			(unsigned)(st->st_mode&S_IFMT)>>12, major(st->st_rdev), minor(st->st_rdev));
+	}
 	_debug( 2, "_dl_filename_1 () -> len=%d, name=%s<\n", l, name);
 	return l;
 }
@@ -242,24 +258,24 @@ _dl_filename_2 (char       *name,
 #  error "lock filename build missing"
 #endif
 
+#if DEBUG
 /* handler for signals */
 static void
 _dl_sig_handler (int sig)
 {
 	signal( sig, _dl_sig_handler);
 	switch( sig ) {
-#if DEBUG
 	case SIGUSR1:
 		liblockdev_debug++;
 		break;
 	case SIGUSR2:
 		liblockdev_debug = 0;
 		break;
-#endif
 	default:
 		break;
 	}
 }
+#endif
 
 /* holds the file descriptor of the lock between the various *_semaphore function calls.
  * its positive conten doesn't tells that we lock the file.
@@ -381,7 +397,7 @@ _dl_check_lock(const char *lockname)
 	/* checks content's format */
 	if ( j == 1 ) {
 		/* checks process existence */
-		if ( ( kill( pid_read, 0) == 0 ) || (errno == EPERM) ) {
+		if ( _dl_pid_exists( pid_read) || (errno == EPERM) ) {
 			_debug( 2, "_dl_check_lock() locked by %d\n", (int)pid_read);
 			return pid_read;
 		}
@@ -423,14 +439,14 @@ _dl_check_lock(const char *lockname)
 		 * maybe also this sprintf should be added to the
 		 * conditional part, as the others
 		 */
-		sprintf( tpname, "%s/.%d", LOCK_PATH, (int)getpid());
+		sprintf( tpname, "%s/.%d", LOCK_PATH, (int)dev_getpid());
 		unlink( tpname);	/* in case there was */
 		rename( lockname, tpname);
 		if ( ! (fd=fopen( tpname, "r")) ) {
 			return -1;
 		}
 		fscanf( fd, "%d", &pid2);
-		if ( pid2 && (pid2 != pid_read) && ( kill( pid2, 0) == 0 )) {
+		if ( pid2 && (pid2 != pid_read) && _dl_pid_exists(pid2) ) {
 			/* lock file was changed! let us quickly
 			 * put it back again
 			 */
@@ -474,20 +490,32 @@ _dl_check_devname (const char *devname)
 		_debug( 3, "_dl_check_devname(%s) stripped name = %s\n", devname, p);
 	} else {
 		/* Otherwise, strip off everything but the device name. */
-		while ( (m=strrchr( p, '/')) != 0 ) {
-			p = m+1;	/* was pointing to the slash */
+		p += strspn(p, " \t\r\n\v\f\a");        /* skip leading whitespace */
+		if (strncmp(p, DEV_PATH, strlen(DEV_PATH)) == 0) {
+			p += strlen(DEV_PATH);	/* 1st char after slash */
 			_debug( 3, "_dl_check_devname(%s) name = %s\n", devname, p);
 		}
 	}
 	if ( strcmp( p, "tty") == 0 )
 		p = ttyname( 0); /* this terminal, if it exists */
-	if ( ((l=strlen( p)) == 0 ) || ( l > (MAXPATHLEN - strlen(LOCK_PATH)) ))
-	 	return 0;
-	if ( ! (m = malloc( 1 + l)) )
-		return 0;
-	return strcpy( m, p);
+	if (((l = strlen(p)) == 0) || (l > (MAXPATHLEN - strlen(LOCK_PATH))))
+		return NULL;
+	if ((m = malloc(++l)) == NULL)
+		return NULL;
+	return strcpy(m, p);
 }
 
+/* for internal use */
+/* correctly check if a process with a given pid exists */
+static inline int
+_dl_pid_exists(pid_t pid)
+{
+	if ( !kill( pid, 0))
+		return 1;
+	if ( errno == ESRCH)
+		return 0;
+	return 1;
+}
 
 /* exported by the interface file lockdev.h */
 /* ZERO means that the device wasn't locked, but could have been locked later */
@@ -511,7 +539,7 @@ dev_testlock(const char *devname)
 #endif /* DEBUG */
 	_debug( 3, "dev_testlock(%s)\n", devname);
 	if ( ! (p=_dl_check_devname( devname)) )
-	 	close_n_return( -1);
+	 	close_n_return(-EINVAL);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
 	_debug( 2, "dev_testlock() device = %s\n", device);
@@ -520,7 +548,7 @@ dev_testlock(const char *devname)
 	 * and minor numbers
 	 */
 	if ( stat( device, &statbuf) == -1 ) {
-		close_n_return( -1);
+		close_n_return(-errno);
 	}
 
 	/* first check for the FSSTND-1.2 lock, get the pid of the
@@ -547,7 +575,6 @@ dev_testlock(const char *devname)
 	 * another program uses the FSSTND lock without the new one than
 	 * the contrary; anyway we do both tests.
 	 */
-	/* lockfile of type /var/lock/LCK.004.064 */
 	_dl_filename_1( lock, &statbuf);
 	if ( (pid=_dl_check_lock( lock)) )
 		close_n_return( pid);
@@ -585,9 +612,9 @@ dev_lock (const char *devname)
 #endif /* DEBUG */
 	_debug( 3, "dev_lock(%s)\n", devname);
 	if (oldmask == -1 )
-		oldmask = umask( 0);	/* give full permissions to files created */
+		oldmask = umask( 002);	/* apply o-w to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
-	 	close_n_return( -1);
+	 	close_n_return(-EINVAL);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
 	_debug( 2, "dev_lock() device = %s\n", device);
@@ -596,11 +623,14 @@ dev_lock (const char *devname)
 	 * and minor numbers
 	 */
 	if ( stat( device, &statbuf) == -1 ) {
-		close_n_return( -1);
+		close_n_return(-errno);
+	}
+	if ( access( device, W_OK ) == -1 ) {
+		close_n_return(-errno);
 	}
 
 	/* now get our own pid */
-	our_pid = getpid();
+	our_pid = dev_getpid();
 	_debug( 2, "dev_lock() our own pid = %d\n", (int)our_pid);
 
 	/* We will use this algorithm:
@@ -613,7 +643,7 @@ dev_lock (const char *devname)
 	/* file of type /var/lock/LCK..<pid> */
 	_dl_filename_0( lock0, our_pid);
 	if ( ! (fd=fopen( lock0, "w")) )
-		close_n_return( -1);	/* no file, no lock */
+		close_n_return( -errno);	/* no file, no lock */
 	fprintf( fd, "%10d\n", (int)our_pid);
 	fclose( fd);
 
@@ -637,12 +667,12 @@ dev_lock (const char *devname)
 	/* test the lock and try to lock; repeat untill an error or a
 	 * lock happens
 	 */
-	/* lockfile of type /var/lock/LCK.004.064 */
 	_dl_filename_1( lock1, &statbuf);
 	while ( ! (pid=_dl_check_lock( lock1)) ) {
 		if (( link( lock0, lock1) == -1 ) && ( errno != EEXIST )) {
+			int rc = -errno;
 			unlink( lock0);
-			close_n_return( -1);
+			close_n_return(rc);
 		}
 	}
 	if ( pid != our_pid ) {
@@ -659,9 +689,10 @@ dev_lock (const char *devname)
 	/* lockfile of type /var/lock/LCK..ttyS2 */
 	while ( ! (pid=_dl_check_lock( lock2)) ) {
 		if (( link( lock0, lock2) == -1 ) && ( errno != EEXIST )) {
+			int rc = -errno;
 			unlink( lock0);
 			unlink( lock1);
-			close_n_return( -1);
+			close_n_return(rc);
 		}
 	}
 	if ( pid != our_pid ) {
@@ -710,7 +741,7 @@ dev_lock (const char *devname)
 		_debug( 1, "dev_lock() process %d owns file %s\n", (int)pid, lock1);
 		_debug( 1, "dev_lock() process %d owns file %s\n", (int)pid2, lock2);
 		_debug( 1, "dev_lock() process %d (we) have no lock!\n", (int)our_pid);
-		close_n_return( -1);
+		close_n_return(pid);
 	}
 	close_n_return( (pid + pid2));
 }
@@ -740,9 +771,9 @@ dev_relock (const char  *devname,
 #endif /* DEBUG */
 	_debug( 3, "dev_relock(%s, %d)\n", devname, (int)old_pid);
 	if (oldmask == -1 )
-		oldmask = umask( 0);	/* give full permissions to files created */
+		oldmask = umask( 002);	/* apply o-w to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
-	 	close_n_return( -1);
+	 	close_n_return(-EPERM);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
 	_debug( 2, "dev_relock() device = %s\n", device);
@@ -751,11 +782,14 @@ dev_relock (const char  *devname,
 	 * and minor numbers
 	 */
 	if ( stat( device, &statbuf) == -1 ) {
-		close_n_return( -1);
+		close_n_return(-errno);
+	}
+	if ( access( device, W_OK ) == -1 ) {
+		close_n_return(-errno);
 	}
 
 	/* now get our own pid */
-	our_pid = getpid();
+	our_pid = dev_getpid();
 	_debug( 2, "dev_relock() our own pid = %d\n", (int)our_pid);
 
 	/* first check for the FSSTND-1.2 lock, get the pid of the
@@ -768,7 +802,6 @@ dev_relock (const char  *devname,
 	if ( pid && old_pid && pid != old_pid )
 		close_n_return( pid);	/* error or locked by someone else */
 
-	/* lockfile of type /var/lock/LCK.004.064 */
 	_dl_filename_1( lock1, &statbuf);
 	pid = _dl_check_lock( lock1);
 	if ( pid && old_pid && pid != old_pid )
@@ -783,7 +816,7 @@ dev_relock (const char  *devname,
 	 * we own all the lockfiles
 	 */
 	if ( ! (fd=fopen( lock1, "w")) )
-		close_n_return( -1);	/* something strange */
+		close_n_return( -errno);	/* something strange */
 	fprintf( fd, "%10d\n", (int)our_pid);
 	fclose( fd);
 	/* under normal conditions, this second file is a hardlink of
@@ -792,7 +825,7 @@ dev_relock (const char  *devname,
 	 */
 	if ( ! (fd=fopen( lock2, "w")) )
 		/* potentially a problem */
-		close_n_return( -1);	/* something strange */
+		close_n_return( -errno);	/* something strange */
 	fprintf( fd, "%10d\n", (int)our_pid);
 	fclose( fd);
 
@@ -825,9 +858,9 @@ dev_unlock (const char *devname,
 #endif /* DEBUG */
 	_debug( 3, "dev_unlock(%s, %d)\n", devname, (int)pid);
 	if (oldmask == -1 )
-		oldmask = umask( 0);	/* give full permissions to files created */
+		oldmask = umask( 002);	/* apply o-w to files created */
 	if ( ! (p=_dl_check_devname( devname)) )
-	 	close_n_return( -1);
+	 	close_n_return( -errno);
 	strcpy( device, DEV_PATH);
 	strcat( device, p);	/* now device has a copy of the pathname */
 	_debug( 2, "dev_unlock() device = %s\n", device);
@@ -836,7 +869,10 @@ dev_unlock (const char *devname,
 	 * and minor numbers
 	 */
 	if ( stat( device, &statbuf) == -1 ) {
-		close_n_return( -1);
+		close_n_return(-errno);
+	}
+	if ( access( device, W_OK ) == -1 ) {
+		close_n_return(-errno);
 	}
 
 	/* first remove the FSSTND-1.2 lock, get the pid of the
@@ -849,7 +885,6 @@ dev_unlock (const char *devname,
 	if ( pid && wpid && pid != wpid )
 		close_n_return( wpid);	/* error or locked by someone else */
 
-	/* lockfile of type /var/lock/LCK.004.064 */
 	_dl_filename_1( lock1, &statbuf);
 	wpid = _dl_check_lock( lock1);
 	if ( pid && wpid && pid != wpid )
@@ -868,3 +903,133 @@ dev_unlock (const char *devname,
 	close_n_return( 0);	/* successfully unlocked */
 }
 
+
+int
+ttylock(const char *devname)
+{
+	/* should set errno ? */
+	return dev_lock( devname) == 0 ? 0 : -1;
+}
+
+int
+ttyunlock (const char *devname)
+{
+	return dev_unlock(devname, 0);
+}
+
+int
+ttylocked(const char *devname)
+{
+	return dev_testlock( devname) == 0 ? 0 : -1;
+}
+
+int
+ttywait (const char *devname)
+{
+
+	int rc;
+	while((rc = ttylocked(devname)) == 0)
+		sleep(1);
+	return rc;
+}
+
+#define	LOCKDEV_PATH	"/usr/sbin/lockdev"
+
+static int _spawn_helper(const char * argv[])
+{
+    pid_t child;
+    int status;
+    int rc;
+
+    if (!(child = fork())) {
+	int fd;
+        /* these have to be open to something */
+	if ((fd = open("/dev/null", 2)) < 0)
+	    exit(-1);
+	dup2(fd, 0);
+	dup2(fd, 1);
+	dup2(fd, 2);
+	close(fd);
+	/* Swap egid and gid for lockdev's access(2) device check. */
+	setregid(getegid(), getgid());
+	execv(argv[0], (char *const *)argv);
+	exit(-1);
+    }
+
+    rc = (int) waitpid(child, &status, 0);
+    if (rc == child && WIFEXITED(status)) {
+	/*
+	 * Exit		dev_lock	dev_unlock	dev_testlock
+	 *	  0	OK		OK		not locked
+	 *	  1	locked other	locked other	locked
+	 *	  2	EACCES
+	 *	  3	EROFS
+	 *	  4	EFAULT
+	 *	  5	EINVAL
+	 *	  6	ENAMETOOLONG
+	 *	  7	ENOENT
+	 *	  8	ENOTDIR
+	 *	  9	ENOMEM
+	 *	 10	ELOOP
+	 *	 11	EIO
+	 *	 12	EPERM
+	 *	255	error		error		error
+	 */
+	rc = WEXITSTATUS(status);
+	switch(rc) {
+	case  0:
+	case  1:	break;
+	default:
+	case  2:	rc = -EACCES;	break;
+	case  3:	rc = -EROFS;	break;
+	case  4:	rc = -EFAULT;	break;
+	case  5:	rc = -EINVAL;	break;
+	case  6:	rc = -ENAMETOOLONG;	break;
+	case  7:	rc = -ENOENT;	break;
+	case  8:	rc = -ENOTDIR;	break;
+	case  9:	rc = -ENOMEM;	break;
+	case 10:	rc = -ELOOP;	break;
+	case 11:	rc = -EIO;	break;
+	case 12:	rc = -EPERM;	break;
+	}
+    } else if (rc == -1)
+	rc = -errno;
+    else
+	rc = -ECHILD;
+
+    return rc;
+
+}
+
+int
+ttylock_helper(const char * devname)
+{
+    const char * argv[] = { LOCKDEV_PATH, "-l", NULL, NULL};
+    argv[2] = devname;
+    return _spawn_helper(argv);
+}
+
+int
+ttyunlock_helper(const char * devname)
+{
+    const char * argv[] = { LOCKDEV_PATH, "-u", NULL, NULL};
+    argv[2] = devname;
+    return _spawn_helper(argv);
+}
+
+int
+ttylocked_helper(const char * devname)
+{
+    const char * argv[] = { LOCKDEV_PATH, NULL, NULL};
+    argv[1] = devname;
+    return _spawn_helper(argv);
+}
+
+int
+ttywait_helper(const char * devname)
+{
+    int rc;
+    while((rc = ttylocked_helper(devname)) == 0)
+	sleep(1);
+    return rc;
+}

@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "lockdev.h"
 
 void
 usage (void)
 {
-	fprintf( stderr, "Usage: sample [-lurd] <device>\n" );
-	exit( -1 );
+	fprintf(stderr, "Usage: %s [-lud] <device>\n", "lockdev");
+	exit(-1);
 }
 
 
@@ -14,8 +16,8 @@ int
 main (int   argc,
       char *argv[])
 {
-	int i, chld;
-	char *p, *dev, ch;
+	int i;
+	char *p = NULL, *dev = NULL, ch;
 
 	ch = '\0';
 	for( i = argc - 1; i > 0; i-- ) {
@@ -23,8 +25,7 @@ main (int   argc,
 		if( *p == '-' ) {
 			switch( *++p ) {
 			case 'l': 
-			case 'u': 
-			case 'r': ch = *p; break;
+			case 'u': ch = *p; break;
 			case 'd':
 				liblockdev_incr_debug();
 				break;
@@ -33,31 +34,56 @@ main (int   argc,
 		}
 		else dev = p;
 	}
-	fprintf( stderr, "option %c, device %s\n", ch, dev );
+	if (dev == NULL)
+	    usage();
 	i = 0;
+	(void) dev_setpid(getppid());
 	switch( ch ) {
 	case 'l':
 		i = dev_lock( dev);
 		break;
 	case 'u':
-		i = dev_unlock( dev, 0);
-		break;
-	case 'r':
-		dev_lock( dev);
-		if(( chld = fork()) == 0 ) {
-			sleep(5);
-		}
-		else {
-			sleep( 1);
-			if (( i = dev_relock( dev, chld)) < 0 ) {
-				fprintf( stderr, "Relock failed in parent.\n" );
-			}
-		}
+		i = dev_unlock(dev, 0);
 		break;
 	default:
-		i = dev_testlock( dev);
+		if (dev)
+			i = dev_testlock(dev);
 		break;
 	}
-	exit( i);
-}
 
+	/*
+	 * Exit		dev_lock	dev_unlock	dev_testlock
+	 *	  0	OK		OK		not locked
+	 *	  1	locked other	locked other	locked
+	 *	  2	EACCES
+	 *	  3	EROFS
+	 *	  4	EFAULT
+	 *	  5	EINVAL
+	 *	  6	ENAMETOOLONG
+	 *	  7	ENOENT
+	 *	  8	ENOTDIR
+	 *	  9	ENOMEM
+	 *	 10	ELOOP
+	 *	 11	EIO
+	 *	 12	EPERM
+	 *	255	error		error		error
+	 */
+	switch (i) {
+	case -EACCES:	i = 2;	break;
+	case -EROFS:	i = 3;	break;
+	case -EFAULT:	i = 4;	break;
+	case -EINVAL:	i = 5;	break;
+	case -ENAMETOOLONG:	i = 6;	break;
+	case -ENOENT:	i = 7;	break;
+	case -ENOTDIR:	i = 8;	break;
+	case -ENOMEM:	i = 9;	break;
+	case -ELOOP:	i = 10;	break;
+	case -EIO:	i = 11;	break;
+	case -EPERM:	i = 12;	break;
+	default:
+	    if (i < 0) i = 255;
+	    else if (i > 0) 	i = 1;
+	    break;
+	}
+	exit(i);
+}

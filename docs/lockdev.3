@@ -28,7 +28,7 @@ accessable by more than one group of users).
 The lock file names are typically in the form
 .B LCK..ttyS1
 and 
-.B LCK.004.065 ,
+.B LK.000.004.065 ,
 but is provided a way to easily modify them to use the library on
 different architectures. The content of those files is the pid of the
 process who owns the lock.
@@ -78,72 +78,12 @@ locked by an existing process, they return the pid of the process owner
 of the lock. They return a negative number when some kind of error
 happens. Actually they all return only (-1).
 
-.SH DEBUGGING
-The 
-.B API
-has symbols used only for debugging purposis
-.sp
-.BI "int liblockdev_debug"
-.br
-.BI "void liblockdev_incr_debug( void );"
-.br
-.BI "void liblockdev_reset_debug( void );"
-.sp
-which can be used when the liblockdev library is compiled with 
-.B -DDEBUG
-flag as when using 
-.B make install-dbg ,
-which compiles a debug shared library and installs it under
-/usr/local/lib/debug (or /usr/lib/debug).
-.br
-The value of the global integer is set to 1 by the DEBUG define,
-and can be set to a different value passing a flag like 
-.B -DDEBUG=3 
-during compilation of the library, or setting the environment variable
-.B LIBLOCKDEV_DEBUG
-to the wanted value before executing your program.
-.br
-During execution of your program, the flag's value can be changed from
-your program or from another terminal, respectively using the function
-.B liblockdev_incr_debug() ,
-or sending SIGUSR1 to the running process,
-to increment the value of the integer by one, or using the function
-.B liblockdev_reset_debug() ,
-or sending SIGUSR2 to the running process,
-to set to zero the value of the global integer.
-.br
-Direct manipulation of the global integer is strongly deprecated,
-because the data structure of the symbol (actually an integer) could be
-changed later in some way, or even become a macro.
-.sp
-The library prints on stdout some informations like error conditions
-(level of 1), normal termination conditions (2) or function calling (3).
-.sp
-To use the debug shared library, simply define in your environment the
-variable LD_LIBRARY_PATH=/usr/lib/debug (or /usr/local/lib/debug if
-built using make install-dbg) and call gdb or directly your program
-without any need to recompile it. As you can check with ldd, your
-program will load the debug library instead of the normal one.
-.br
-Beware that if your program is setuid or setgid, you must become root to
-let this work, because ld.so ignores the LD_LIBRARY_PATH variable for
-security reasons.
-.sp
-On
-.B Debian GNU/Linux
-systems exists a debug binary package named
-.B liblockdev1-dbg 
-which installs a shared library built with all
-debugging options (and the -DDEBUG flag) into /usr/lib/debug .
-
 .SH FILES
 /var/lock/LCK..<device>
 .br
-/var/lock/LCK.<major>.<minor>
+/var/lock/LK.<devmajor>.<major>.<minor>
 .br
 /usr/lib/liblockdev.so.1
-.br
-/usr/lib/debug/liblockdev.so.1
 
 .SH HISTORY
 (c) 1997 by Fabrizio Polacco <fab@prosa.it>.

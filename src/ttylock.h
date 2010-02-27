@@ -36,39 +36,10 @@ extern "C" {
 
 /* API of the library */
 
-int ttylock (char * devname);
-int ttywait (char * devname);
-int ttyunlock (char * devname);
-int ttylocked (char * devname);
-
-
-static inline int
-ttylock(char *devname)
-{
-	/* should set errno ? */
-	return dev_lock( devname) == 0 ? 0 : -1;
-}
-
-static inline int
-ttyunlock (char *devname)
-{
-	return dev_unlock(devname, 0);
-}
-
-static inline int
-ttylocked(char *devname)
-{
-	return dev_testlock( devname) == 0 ? 0 : -1;
-}
-
-static inline int
-ttywait (char *devname)
-{
-	while( dev_testlock( devname)) {
-		sleep(1);
-	}
-}
-
+int ttylock (const char * devname);
+int ttywait (const char * devname);
+int ttyunlock (const char * devname);
+int ttylocked (const char * devname);
 
 #ifdef	__cplusplus
 };
