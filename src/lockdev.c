@@ -130,6 +130,8 @@
 #define _LIBLOCKDEV_NO_BAUDBOY_DEFINES
 #include "baudboy.h"
 
+#define	LOCKDEV_PATH	SBINDIR "/lockdev"
+
 /*
  *	PROTOTYPES for internal functions
  *	all internal functions names start with _dl_
@@ -932,8 +934,6 @@ ttywait (const char *devname)
 		sleep(1);
 	return rc;
 }
-
-#define	LOCKDEV_PATH	"/usr/sbin/lockdev"
 
 static int _spawn_helper(const char * argv[])
 {
