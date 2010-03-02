@@ -943,8 +943,9 @@ static int _spawn_helper(const char * argv[])
 	dup2(fd, 1);
 	dup2(fd, 2);
 	close(fd);
-	/* Swap egid and gid for lockdev's access(2) device check. */
+	/* Swap real and effective ids for lockdev's access(2) device check. */
 	setregid(getegid(), getgid());
+	setreuid(geteuid(), getuid());
 	execv(argv[0], (char *const *)argv);
 	exit(-1);
     }
