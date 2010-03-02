@@ -17,7 +17,15 @@ main (int   argc,
       char *argv[])
 {
 	int i;
+	int fd;
 	char *p = NULL, *dev = NULL, ch;
+
+        /* these have to be open to something */
+	if ((fd = open("/dev/null", 2)) < 0)
+	    exit(-1);
+	dup2(fd, 0);
+	dup2(fd, 1);
+	dup2(fd, 2);
 
 	ch = '\0';
 	for( i = argc - 1; i > 0; i-- ) {
