@@ -490,13 +490,6 @@ _dl_check_devname (const char *devname)
         if (strncmp(DEV_PATH, p, strlen(DEV_PATH)) == 0) {
 		p += 5;
 		_debug( 3, "_dl_check_devname(%s) stripped name = %s\n", devname, p);
-	} else {
-		/* Otherwise, strip off everything but the device name. */
-		p += strspn(p, " \t\r\n\v\f\a");        /* skip leading whitespace */
-		if (strncmp(p, DEV_PATH, strlen(DEV_PATH)) == 0) {
-			p += strlen(DEV_PATH);	/* 1st char after slash */
-			_debug( 3, "_dl_check_devname(%s) name = %s\n", devname, p);
-		}
 	}
 	if ( strcmp( p, "tty") == 0 )
 		p = ttyname( 0); /* this terminal, if it exists */
