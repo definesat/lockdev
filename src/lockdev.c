@@ -224,17 +224,21 @@ _dl_filename_1 (char              *name,
 		const struct stat *st)
 {
 	int l;
+	const char* xtra = "";
 	_debug( 3, "_dl_filename_1 (dev=%lx, rdev=%lx)\n",
 		(unsigned long)st->st_dev, (unsigned long)st->st_rdev);
 	/* lockfile of type /var/lock/LK.003.004.064 */
 	if(S_ISCHR(st->st_mode)) {
-		l = sprintf( name, "%s/LK.%03u.%03u.%03u", LOCK_PATH,
-			major(st->st_dev), major(st->st_rdev), minor(st->st_rdev));
+	} else if(S_ISBLK(st->st_mode)) {
+		/* block devices are not standardized */
+		xtra = "b.";
 	} else {
-		/* no character device. There's no standard for that */
-		l = sprintf( name, "%s/LK.x%03u.%03u.%03u", LOCK_PATH,
-			(unsigned)(st->st_mode&S_IFMT)>>12, major(st->st_rdev), minor(st->st_rdev));
+		/* not a device at all, ie no major/minor number */
+		*name = 0;
+		return 0;
 	}
+	l = sprintf( name, "%s/LK.%s%03u.%03u.%03u", LOCK_PATH, xtra,
+		major(st->st_dev), major(st->st_rdev), minor(st->st_rdev));
 	_debug( 2, "_dl_filename_1 () -> len=%d, name=%s<\n", l, name);
 	return l;
 }
@@ -570,12 +574,13 @@ dev_testlock(const char *devname)
 	 * another program uses the FSSTND lock without the new one than
 	 * the contrary; anyway we do both tests.
 	 */
-	_dl_filename_1( lock, &statbuf);
-	if ( (pid=_dl_check_lock( lock)) )
-		close_n_return( pid);
-	if ( pid_read ) {
-		_dl_filename_0( lock, pid_read);
-		_dl_check_lock( lock);
+	if (_dl_filename_1( lock, &statbuf)) {
+		if ( (pid=_dl_check_lock( lock)) )
+			close_n_return( pid);
+		if ( pid_read ) {
+			_dl_filename_0( lock, pid_read);
+			_dl_check_lock( lock);
+		}
 	}
 
 
@@ -662,22 +667,23 @@ dev_lock (const char *devname)
 	/* test the lock and try to lock; repeat untill an error or a
 	 * lock happens
 	 */
-	_dl_filename_1( lock1, &statbuf);
-	while ( ! (pid=_dl_check_lock( lock1)) ) {
-		if (( link( lock0, lock1) == -1 ) && ( errno != EEXIST )) {
-			int rc = -errno;
-			unlink( lock0);
-			close_n_return(rc);
+	if (_dl_filename_1( lock1, &statbuf)) {
+		while ( ! (pid=_dl_check_lock( lock1)) ) {
+			if (( link( lock0, lock1) == -1 ) && ( errno != EEXIST )) {
+				int rc = -errno;
+				unlink( lock0);
+				close_n_return(rc);
+			}
 		}
-	}
-	if ( pid != our_pid ) {
-		/* error or another one owns it now */
-		unlink( lock0);
-		close_n_return( pid);
-	}
-	if ( pid_read ) {	/* modifyed by _dl_check_lock() */
-		_dl_filename_0( lock, pid_read);
-		_dl_check_lock( lock);	/* remove stale pid file */
+		if ( pid != our_pid ) {
+			/* error or another one owns it now */
+			unlink( lock0);
+			close_n_return( pid);
+		}
+		if ( pid_read ) {	/* modifyed by _dl_check_lock() */
+			_dl_filename_0( lock, pid_read);
+			_dl_check_lock( lock);	/* remove stale pid file */
+		}
 	}
 	/* from this point lock1 is OUR! */
 
@@ -686,7 +692,7 @@ dev_lock (const char *devname)
 		if (( link( lock0, lock2) == -1 ) && ( errno != EEXIST )) {
 			int rc = -errno;
 			unlink( lock0);
-			unlink( lock1);
+			if (*lock1) unlink( lock1);
 			close_n_return(rc);
 		}
 	}
@@ -697,7 +703,7 @@ dev_lock (const char *devname)
 		 * We let them win.
 		 */
 		unlink( lock0);
-		unlink( lock1);
+		if (*lock1) unlink( lock1);
 		close_n_return( pid);
 	}
 	/* quite unlike, but ... */
@@ -716,15 +722,19 @@ dev_lock (const char *devname)
 	 * So simply check again for the lock should let us know if we
 	 * were so much unlucky.
 	 */
-	pid = _dl_check_lock( lock1);
 	pid2 = _dl_check_lock( lock2);
+	if (*lock1)
+		pid = _dl_check_lock( lock1);
+	else
+		pid = pid2;
+
 	if (( pid == pid2 ) && ( pid == our_pid )) {
 		_debug( 2, "dev_lock() got lock\n");
 		close_n_return( 0);	/* locked by us */
 	}
 	/* oh, no! someone else stepped in! */
 	if ( pid == our_pid ) {
-		unlink( lock1);
+		if (*lock1) unlink( lock1);
 		pid = 0;
 	}
 	if ( pid2 == our_pid ) {
@@ -797,10 +807,11 @@ dev_relock (const char  *devname,
 	if ( pid && old_pid && pid != old_pid )
 		close_n_return( pid);	/* error or locked by someone else */
 
-	_dl_filename_1( lock1, &statbuf);
-	pid = _dl_check_lock( lock1);
-	if ( pid && old_pid && pid != old_pid )
-		close_n_return( pid);	/* error or locked by someone else */
+	if (_dl_filename_1( lock1, &statbuf)) {
+		pid = _dl_check_lock( lock1);
+		if ( pid && old_pid && pid != old_pid )
+			close_n_return( pid);	/* error or locked by someone else */
+	}
 
 	if ( ! pid ) {	/* not locked ??? */
 		/* go and lock it */
@@ -810,10 +821,12 @@ dev_relock (const char  *devname,
 	/* we don't rewrite the pids in the lock files untill we're sure
 	 * we own all the lockfiles
 	 */
-	if ( ! (fd=fopen( lock1, "w")) )
-		close_n_return( -errno);	/* something strange */
-	fprintf( fd, "%10d\n", (int)our_pid);
-	fclose( fd);
+	if (*lock1) {
+		if ( ! (fd=fopen( lock1, "w")) )
+			close_n_return( -errno);	/* something strange */
+		fprintf( fd, "%10d\n", (int)our_pid);
+		fclose( fd);
+	}
 	/* under normal conditions, this second file is a hardlink of
 	 * the first, so we have yet modifyed it also, and this write
 	 * seems redundant ... but ... doesn't hurt.
@@ -880,10 +893,11 @@ dev_unlock (const char *devname,
 	if ( pid && wpid && pid != wpid )
 		close_n_return( wpid);	/* error or locked by someone else */
 
-	_dl_filename_1( lock1, &statbuf);
-	wpid = _dl_check_lock( lock1);
-	if ( pid && wpid && pid != wpid )
-		close_n_return( wpid);	/* error or locked by someone else */
+	if (_dl_filename_1( lock1, &statbuf)) {
+		wpid = _dl_check_lock( lock1);
+		if ( pid && wpid && pid != wpid )
+			close_n_return( wpid);	/* error or locked by someone else */
+	}
 
 	_dl_filename_0( lock0, wpid);
 	if ( wpid == _dl_check_lock( lock0))
@@ -893,7 +907,7 @@ dev_unlock (const char *devname,
 	 * they have been built.
 	 */
 	unlink( lock2);
-	unlink( lock1);
+	if (*lock1) unlink( lock1);
 	_debug( 2, "dev_unlock() unlocked\n");
 	close_n_return( 0);	/* successfully unlocked */
 }
