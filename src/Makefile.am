@@ -1,7 +1,7 @@
 sbin_PROGRAMS = lockdev
 noinst_PROGRAMS = baudboy
 
-include_HEADERS = lockdev.h baudboy.h ttylock.h
+include_HEADERS = lockdev.h ttylock.h
 
 AM_CPPFLAGS = -include $(top_builddir)/config.h -DSBINDIR=\"$(sbindir)\"
 

@@ -120,8 +120,6 @@
 #include <sys/wait.h>
 #include "lockdev.h"
 #include "ttylock.h"
-#define _LIBLOCKDEV_NO_BAUDBOY_DEFINES
-#include "baudboy.h"
 
 #define	LOCKDEV_PATH	SBINDIR "/lockdev"
 
@@ -906,6 +904,7 @@ dev_unlock (const char *devname,
 }
 
 
+#ifndef TTYLOCK_USE_HELPER
 int
 ttylock(const char *devname)
 {
@@ -925,16 +924,7 @@ ttylocked(const char *devname)
 	return dev_testlock( devname) == 0 ? 0 : -1;
 }
 
-int
-ttywait (const char *devname)
-{
-
-	int rc;
-	while((rc = ttylocked(devname)) == 0)
-		sleep(1);
-	return rc;
-}
-
+#else
 static int _spawn_helper(const char * argv[])
 {
     pid_t child;
@@ -1003,7 +993,7 @@ static int _spawn_helper(const char * argv[])
 }
 
 int
-ttylock_helper(const char * devname)
+ttylock(const char * devname)
 {
     const char * argv[] = { LOCKDEV_PATH, "-l", NULL, NULL};
     argv[2] = devname;
@@ -1011,7 +1001,7 @@ ttylock_helper(const char * devname)
 }
 
 int
-ttyunlock_helper(const char * devname)
+ttyunlock(const char * devname)
 {
     const char * argv[] = { LOCKDEV_PATH, "-u", NULL, NULL};
     argv[2] = devname;
@@ -1019,18 +1009,19 @@ ttyunlock_helper(const char * devname)
 }
 
 int
-ttylocked_helper(const char * devname)
+ttylocked(const char * devname)
 {
     const char * argv[] = { LOCKDEV_PATH, NULL, NULL};
     argv[1] = devname;
     return _spawn_helper(argv);
 }
+#endif
 
 int
-ttywait_helper(const char * devname)
+ttywait(const char * devname)
 {
     int rc;
-    while((rc = ttylocked_helper(devname)) == 0)
+    while((rc = ttylocked(devname)) == 0)
 	sleep(1);
     return rc;
 }

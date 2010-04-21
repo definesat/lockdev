@@ -40,6 +40,21 @@ AC_HEADER_STDC
 
 LT_INIT([disable-static])
 
+AC_MSG_CHECKING([whether the library needs to call a helper])
+AC_ARG_ENABLE(helper,AS_HELP_STRING([--enable-helper],[use helper binary for locking]),,enable_helper=auto)
+if test x$enable_helper = xauto; then
+	varlockperms=`stat -c %a /var/lock`
+	if test x"$varlockperms" != x777; then
+		enable_helper=yes
+	fi
+fi
+if test x$enable_helper = xyes; then
+	AC_MSG_RESULT([yes])
+	AC_DEFINE_UNQUOTED([TTYLOCK_USE_HELPER], 1, [set to 1 to enable use of helper binary])
+else
+	AC_MSG_RESULT([no])
+fi
+
 dnl check if user wants debug
 AC_MSG_CHECKING([whether to enable debug output])
 AC_ARG_ENABLE(debug,AS_HELP_STRING([--enable-debug],[turn on debugging code]),,enable_debug=no)
