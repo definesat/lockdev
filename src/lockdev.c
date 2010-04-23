@@ -488,7 +488,7 @@ _dl_check_devname (const char *devname)
 	}
 	if ( strcmp( p, "tty") == 0 )
 		p = ttyname( 0); /* this terminal, if it exists */
-	if (((l = strlen(p)) == 0) || (l > (MAXPATHLEN - strlen(LOCK_PATH))))
+	if (((l = strlen(p)) == 0) || (l > (MAXPATHLEN - strlen(LOCK_PATH) - 10)))
 		return NULL;
 	if ((m = malloc(++l)) == NULL)
 		return NULL;
